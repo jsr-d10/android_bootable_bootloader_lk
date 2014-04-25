@@ -155,6 +155,10 @@ DEPS := $(ALLOBJS:%o=%d)
 # default to no ccache
 CCACHE ?= 
 CC := $(CCACHE) $(TOOLCHAIN_PREFIX)gcc
+GCC_VER_GTE49 := $(shell echo `$(CC) -dumpversion | cut -f1-2 -d.` \>= 4.9 | sed -e 's/\./*100+/g' | bc )
+ifeq ($(GCC_VER_GTE49),1)
+	CFLAGS += -fdiagnostics-color=always
+endif
 ifeq ($(LD),ld)
 LD := $(TOOLCHAIN_PREFIX)ld
 endif
