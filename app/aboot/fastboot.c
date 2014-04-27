@@ -394,9 +394,17 @@ void fastboot_okay(const char *info)
 static void cmd_getvar(const char *arg, void *data, unsigned sz)
 {
 	struct fastboot_var *var;
+	bool all = false;
+	char response[128];
+
+	all = !strcmp("all", arg);
 
 	for (var = varlist; var; var = var->next) {
-		if (!strcmp(var->name, arg)) {
+		if (all) {
+			snprintf(response, sizeof(response), "\t%s: [%s]", var->name, var->value);
+			fastboot_info(response);
+		}
+		else if (!strcmp(var->name, arg)) {
 			fastboot_okay(var->value);
 			return;
 		}
