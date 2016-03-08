@@ -61,23 +61,9 @@ static void write_dcc(char c)
 
 #if WITH_DEBUG_LOG_BUF
 
-#ifndef LK_LOG_BUF_SIZE
-#define LK_LOG_BUF_SIZE    (262144) /* align on 4k */
-#endif
-
 #define LK_LOG_COOKIE    0x474f4c52 /* "RLOG" in ASCII */
 
-struct lk_log {
-	struct lk_log_header {
-		unsigned cookie;
-		unsigned max_size;
-		unsigned size_written;
-		unsigned idx;
-	} header;
-	char data[LK_LOG_BUF_SIZE];
-};
-
-static struct lk_log log = {
+struct lk_log log = {
 	.header = {
 		.cookie = LK_LOG_COOKIE,
 		.max_size = sizeof(log.data),

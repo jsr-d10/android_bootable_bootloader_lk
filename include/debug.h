@@ -91,6 +91,27 @@ void spin(uint32_t usecs);
 void hexdump(const void *ptr, size_t len);
 void hexdump8(const void *ptr, size_t len);
 
+#if WITH_DEBUG_LOG_BUF
+
+#ifndef LK_LOG_BUF_SIZE
+#define LK_LOG_BUF_SIZE    (262144) /* align on 4k */
+#endif
+
+struct lk_log {
+	struct lk_log_header {
+		unsigned cookie;
+		unsigned max_size;
+		unsigned size_written;
+		unsigned idx;
+	} header;
+	char data[LK_LOG_BUF_SIZE];
+};
+
+extern struct lk_log log;
+
+#endif //WITH_DEBUG_LOG_BUF
+
+
 /* trace routines */
 #define TRACE_ENTRY printf("%s: entry\n", __PRETTY_FUNCTION__)
 #define TRACE_EXIT printf("%s: exit\n", __PRETTY_FUNCTION__)

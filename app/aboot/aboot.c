@@ -2219,6 +2219,18 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	fastboot_okay("");
 }
 
+#if WITH_DEBUG_LOG_BUF
+void cmd_fastboot_log(const char *arg, void *data, unsigned sz)
+{
+      char *addr=log.data;
+      while (addr[0] != 0) {
+	  fastboot_info(addr);
+	  addr+=MAX_RSP_SIZE-5; // 5=sizeof("OKAY") + trailing '\0'
+      }
+      fastboot_okay("");
+}
+#endif
+
 void cmd_preflash(const char *arg, void *data, unsigned sz)
 {
 	fastboot_okay("");
@@ -2423,6 +2435,9 @@ void aboot_fastboot_register_commands(void)
 	fastboot_register("reboot-bootloader", cmd_reboot_bootloader);
 	fastboot_register("oem unlock",        cmd_oem_unlock);
 	fastboot_register("oem device-info",   cmd_oem_devinfo);
+#if WITH_DEBUG_LOG_BUF
+	fastboot_register("oem fastboot-log",  cmd_fastboot_log);
+#endif
 	fastboot_register("preflash",          cmd_preflash);
 	fastboot_register("oem enable-charger-screen",
 			cmd_oem_enable_charger_screen);
