@@ -62,7 +62,7 @@ static void write_dcc(char c)
 #if WITH_DEBUG_LOG_BUF
 
 #ifndef LK_LOG_BUF_SIZE
-#define LK_LOG_BUF_SIZE    (4096) /* align on 4k */
+#define LK_LOG_BUF_SIZE    (262144) /* align on 4k */
 #endif
 
 #define LK_LOG_COOKIE    0x474f4c52 /* "RLOG" in ASCII */
