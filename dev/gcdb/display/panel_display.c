@@ -345,6 +345,7 @@ int32_t panel_name_to_id(struct panel_list supp_panels[],
 	/* Remove any leading whitespaces */
 	panel_name += strspn(panel_name, " ");
 	for (i = 0; i < supp_panels_size; i++) {
+		dprintf(SPEW, "supp_panels[%d].name=%s\n", i,  supp_panels[i].name);
 		if (!strncmp(panel_name, supp_panels[i].name,
 			MAX_PANEL_ID_LEN)) {
 			panel_id = supp_panels[i].id;
