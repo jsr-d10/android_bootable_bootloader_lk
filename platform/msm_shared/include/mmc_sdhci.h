@@ -115,7 +115,7 @@
 #define MMC_HC_ERASE_MULT                         (512 * 1024)
 
 /* Command related */
-#define MMC_MAX_COMMAND_RETRY                     1000
+#define MMC_MAX_COMMAND_RETRY                     10
 #define MMC_MAX_CARD_STAT_RETRY                   10000
 #define MMC_RD_BLOCK_LEN                          512
 #define MMC_WR_BLOCK_LEN                          512
