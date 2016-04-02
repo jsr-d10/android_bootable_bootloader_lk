@@ -34,6 +34,7 @@
 #include <board.h>
 #include <mipi_dsi.h>
 #include <target/display.h>
+#include <platform/gpio.h>
 
 #include "include/panel.h"
 #include "panel_display.h"
@@ -88,7 +89,77 @@ static struct panel_list supp_panels[] = {
 	{"nt35590_qvga_cmd", NT35590_QVGA_CMD_PANEL},
 };
 
+enum glass_types {
+	GLASS_TYPE_AUO = 0,
+	GLASS_TYPE_CMI,
+	GLASS_TYPE_AUO_ASI,
+	GLASS_TYPE_LG,
+	GLASS_TYPE_UNKNOWN
+};
+
 static uint32_t panel_id;
+static uint32_t glass_type = GLASS_TYPE_UNKNOWN;
+
+#define LCD_PANEL_ID0_GPIO    4
+#define LCD_PANEL_ID1_GPIO    5
+
+#define GLASS_TYPE_PREFIX  "Panel Glass Type: "
+
+const char *get_panel_glass_name(void)
+{
+	switch(glass_type) {
+		case GLASS_TYPE_AUO:
+			return GLASS_TYPE_PREFIX "NT35590_AUO\n";
+		case GLASS_TYPE_CMI:
+			return GLASS_TYPE_PREFIX "NT35590_CMI\n";
+		case GLASS_TYPE_AUO_ASI:
+			return GLASS_TYPE_PREFIX "NT35521_AUO_aSi\n";
+		case GLASS_TYPE_LG:
+			return GLASS_TYPE_PREFIX "NT35521_LG_goworld\n";
+	}
+	return GLASS_TYPE_PREFIX "Unknown\n";
+};
+
+uint32_t get_lcd_panel_glass_type(void) {
+	int rc = 0;
+	uint32_t cfg;
+	uint32_t lcd_id0;
+	uint32_t lcd_id1;
+
+	dprintf(INFO, "%s: enter\n", __func__);
+	gpio_tlmm_config(LCD_PANEL_ID0_GPIO, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_8MA, GPIO_ENABLE);
+	gpio_tlmm_config(LCD_PANEL_ID1_GPIO, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_8MA, GPIO_ENABLE);
+
+	mdelay(5);  // wait 5ms
+
+	lcd_id0 = gpio_status(LCD_PANEL_ID0_GPIO);
+	lcd_id1 = gpio_status(LCD_PANEL_ID1_GPIO);
+
+	// AUO:     lcd_id0=1 lcd_id1=0 glass_type=0  (rev.B)
+	// CMI:     lcd_id0=0 lcd_id1=0 glass_type=1  (rev.A)
+	// AUO_aSi: lcd_id0=1 lcd_id1=1 glass_type=2  (rev.C)
+	// LG:      lcd_id0=0 lcd_id1=1 glass_type=3  (guess)
+
+	if (lcd_id0 == 0 && lcd_id1 == 0) {
+		glass_type = GLASS_TYPE_CMI;
+		panel_id = NT35590_720P_VIDEO_PANEL;
+	}
+	if (lcd_id0 == 1 && lcd_id1 == 0) {
+		glass_type = GLASS_TYPE_AUO;
+		panel_id = NT35590_720P_VIDEO_PANEL;
+	}
+	if (lcd_id0 == 1 && lcd_id1 == 1) {
+		glass_type = GLASS_TYPE_AUO_ASI;
+		panel_id = NT35521_720P_VIDEO_PANEL;
+	}
+	if (lcd_id0 == 0 && lcd_id1 == 1) {
+		glass_type = GLASS_TYPE_LG;
+		panel_id = NT35521_720P_VIDEO_PANEL;
+	}
+	dprintf(INFO, "%s: lcd_id0=%d lcd_id1=%d glass_type=%d, panel_id=%d\n", __func__, lcd_id0, lcd_id1, glass_type, panel_id);
+	dprintf(INFO, "%s: %s \n", __func__, get_panel_glass_name());
+	return(glass_type);
+}
 
 int oem_panel_rotation()
 {
@@ -395,6 +466,7 @@ bool oem_panel_select(const char *panel_name, struct panel_struct *panelstruct,
 				return false;
 			}
 		}
+		get_lcd_panel_glass_type();
 		break;
 	case HW_PLATFORM_MTP:
 	case HW_PLATFORM_SURF:
