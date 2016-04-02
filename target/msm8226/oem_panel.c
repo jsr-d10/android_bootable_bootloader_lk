@@ -238,10 +238,19 @@ static void init_panel_data(struct panel_struct *panelstruct,
 		panelstruct->panelresetseq
 					 = &nt35590_720p_video_panel_reset_seq;
 		panelstruct->backlightinfo = &nt35590_720p_video_backlight;
-		pinfo->mipi.panel_cmds
-					= nt35590_720p_video_on_command;
-		pinfo->mipi.num_of_panel_cmds
-					= NT35590_720P_VIDEO_ON_COMMAND;
+		switch (glass_type) {
+			case GLASS_TYPE_AUO:
+				pinfo->mipi.panel_cmds
+					= nt35590_AUO_720p_video_on_command;
+				pinfo->mipi.num_of_panel_cmds
+					= NT35590_AUO_720P_VIDEO_ON_COMMAND;
+				break;
+			case GLASS_TYPE_CMI:
+				pinfo->mipi.panel_cmds
+					= nt35590_CMI_720p_video_on_command;
+				pinfo->mipi.num_of_panel_cmds
+					= NT35590_CMI_720P_VIDEO_ON_COMMAND;
+		}
 		memcpy(phy_db->timing,
 				nt35590_720p_video_timings, TIMING_SIZE);
 		break;
