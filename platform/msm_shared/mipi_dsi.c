@@ -202,7 +202,7 @@ int dsi_cmd_dma_trigger_for_panel()
 	}
 
 	writel((readl(DSI_INT_CTRL) | 0x01000001), DSI_INT_CTRL);
-	dprintf(SPEW, "Panel CMD: command mode dma tested successfully\n");
+//	dprintf(SPEW, "Panel CMD: command mode dma tested successfully\n");
 	return status;
 }
 
