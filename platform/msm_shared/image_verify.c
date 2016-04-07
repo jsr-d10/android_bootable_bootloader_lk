@@ -41,7 +41,7 @@ image_decrypt_signature(unsigned char *signature_ptr, unsigned char *plain_text)
 	 */
 	int ret = -1;
 	X509 *x509_certificate = NULL;
-	unsigned char *cert_ptr = certBuffer;
+	const uint8_t *cert_ptr = (const uint8_t *)certBuffer;
 	unsigned int cert_size = sizeof(certBuffer);
 	EVP_PKEY *pub_key = NULL;
 	RSA *rsa_key = NULL;

@@ -83,7 +83,7 @@ static uint32_t is_pwrkey_pon_reason()
  * (PWRKEY_LONG_PRESS_COUNT/MPM_SLEEP_TIMETICK_COUNT) seconds.
  */
 static enum handler_return long_press_pwrkey_timer_func(struct timer *p_timer,
-	void *arg)
+	time_t now, void *arg)
 {
 	uint32_t sclk_count = platform_get_sclk_count();
 

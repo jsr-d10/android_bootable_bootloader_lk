@@ -146,7 +146,7 @@ static bool boot_reason_alarm;
 /* Assuming unauthorized kernel image by default */
 static int auth_kernel_img = 0;
 
-static device_info device = {DEVICE_MAGIC, 0, 0, 1, 0};
+static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}};
 
 struct atag_ptbl_entry
 {
@@ -588,7 +588,7 @@ void boot_linux(void *kernel, unsigned *tags,
 		const char *cmdline, unsigned machtype,
 		void *ramdisk, unsigned ramdisk_size)
 {
-	unsigned char *final_cmdline;
+	const char *final_cmdline;
 #if DEVICE_TREE
 	int ret = 0;
 #endif
@@ -596,9 +596,9 @@ void boot_linux(void *kernel, unsigned *tags,
 	void (*entry)(unsigned, unsigned, unsigned*) = (entry_func_ptr*)(PA((addr_t)kernel));
 	uint32_t tags_phys = PA((addr_t)tags);
 
-	ramdisk = PA(ramdisk);
+	ramdisk = pPA(ramdisk);
 
-	final_cmdline = update_cmdline((const char*)cmdline);
+	final_cmdline = (const char *) update_cmdline((const char*)cmdline);
 
 #if DEVICE_TREE
 	dprintf(INFO, "Updating device tree: start\n");
@@ -625,8 +625,8 @@ void boot_linux(void *kernel, unsigned *tags,
 #endif
 
 
-	dprintf(INFO, "booting linux @ %p, ramdisk @ %p (%d), tags/device tree @ %p\n",
-		entry, ramdisk, ramdisk_size, tags_phys);
+	dprintf(INFO, "booting linux @ %p, ramdisk @ %p (%u), tags/device tree @ %p\n",
+		entry, ramdisk, ramdisk_size, (void*)tags_phys);
 
 	enter_critical_section();
 
@@ -891,7 +891,7 @@ int boot_linux_from_mmc(void)
 		dprintf(INFO, "Loading boot image (%d): start\n", imagesize_actual);
 		bs_set_timestamp(BS_KERNEL_LOAD_START);
 
-		if (check_aboot_addr_range_overlap(image_addr, imagesize_actual))
+		if (check_aboot_addr_range_overlap((uint32_t)image_addr, imagesize_actual))
 		{
 			dprintf(CRITICAL, "Boot image buffer address overlaps with aboot addresses.\n");
 			return -1;
@@ -909,7 +909,7 @@ int boot_linux_from_mmc(void)
 
 		offset = imagesize_actual;
 
-		if (check_aboot_addr_range_overlap(image_addr + offset, page_size))
+		if (check_aboot_addr_range_overlap((uint32_t)image_addr + offset, page_size))
 		{
 			dprintf(CRITICAL, "Signature read buffer address overlaps with aboot addresses.\n");
 			return -1;
@@ -922,7 +922,7 @@ int boot_linux_from_mmc(void)
 			return -1;
 		}
 
-		verify_signed_bootimg(image_addr, imagesize_actual);
+		verify_signed_bootimg((uint32_t)image_addr, imagesize_actual);
 
 		/* Move kernel, ramdisk and device tree to correct address */
 		memmove((void*) hdr->kernel_addr, (char *)(image_addr + page_size), hdr->kernel_size);
@@ -1230,7 +1230,7 @@ int boot_linux_from_flash(void)
 			return -1;
 		}
 
-		verify_signed_bootimg(image_addr, imagesize_actual);
+		verify_signed_bootimg((uint32_t)image_addr, imagesize_actual);
 
 		/* Move kernel and ramdisk to correct address */
 		memmove((void*) hdr->kernel_addr, (char *)(image_addr + page_size), hdr->kernel_size);
@@ -1785,7 +1785,7 @@ void cmd_flash_mmc_img(const char *arg, void *data, unsigned sz)
 	uint8_t lun = 0;
 	bool lun_set = false;
 
-	token = strtok(arg, ":");
+	token = strtok((char *)arg, ":");
 	pname = token;
 	token = strtok(NULL, ":");
 	if(token)
@@ -2236,7 +2236,7 @@ void cmd_preflash(const char *arg, void *data, unsigned sz)
 	fastboot_okay("");
 }
 
-static struct fbimage logo_header = {0};
+static struct fbimage logo_header;
 struct fbimage* splash_screen_flash();
 
 int splash_screen_check_header(struct fbimage *logo)
@@ -2333,7 +2333,7 @@ struct fbimage* splash_screen_mmc()
 				base += LOGO_IMG_OFFSET;
 
 		if (mmc_read(ptn + sizeof(logo->header),
-			base,
+			(uint32_t *)base,
 			((((logo->header.width * logo->header.height * fb_display->bpp/8) + 511) >> 9) << 9))) {
 			fbcon_clear();
 			dprintf(CRITICAL, "ERROR: Cannot read splash image\n");
@@ -2631,7 +2631,7 @@ int aboot_save_boot_hash_mmc(void *kernel_addr, unsigned kernel_actual,
 		   unsigned dt_offset, unsigned dt_size)
 {
 	SHA256_CTX sha256_ctx;
-	char digest[32]={0};
+	uint8_t digest[32]={0};
 	char *buf = (char *)target_get_scratch_address();
 	unsigned dt_actual = ROUND_TO_PAGE(dt_size, page_mask);
 	unsigned imagesize_actual = page_size + kernel_actual + ramdisk_actual + dt_actual;
@@ -2639,13 +2639,13 @@ int aboot_save_boot_hash_mmc(void *kernel_addr, unsigned kernel_actual,
 	SHA256_Init(&sha256_ctx);
 
 	/* Read Boot Header */
-	if (mmc_read(ptn, buf, page_size))
+	if (mmc_read(ptn, (uint32_t *)buf, page_size))
 	{
 		dprintf(CRITICAL, "ERROR: mmc_read() fail.\n");
 		return -1;
 	}
 	/* Read entire Device Tree */
-	if (mmc_read(ptn + dt_offset, buf+page_size, dt_actual))
+	if (mmc_read(ptn + dt_offset, (uint32_t *)(buf+page_size), dt_actual))
 	{
 		dprintf(CRITICAL, "ERROR: mmc_read() fail.\n");
 		return -1;

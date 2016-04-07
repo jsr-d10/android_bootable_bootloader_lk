@@ -27,8 +27,11 @@
 
 #include <dload_util.h>
 
-#define PA(x) (void*)platform_get_virt_to_phys_mapping((addr_t)x)
-#define VA(x) (void*)platform_get_phys_to_virt_mapping((addr_t)x)
+#define PA(x) platform_get_virt_to_phys_mapping((addr_t)x)
+#define VA(x) platform_get_phys_to_virt_mapping((addr_t)x)
+
+#define pPA(x) (void*) platform_get_virt_to_phys_mapping((addr_t)x)
+#define pVA(x) (void*) platform_get_phys_to_virt_mapping((addr_t)x)
 
 time_t current_time(void);
 bigtime_t current_time_hires(void);

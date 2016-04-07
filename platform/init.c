@@ -97,7 +97,7 @@ __WEAK void ce_clock_init(void)
 
 __WEAK addr_t get_bs_info_addr()
 {
-	return NULL;
+	return 0;
 }
 
 __WEAK uint32_t platform_get_sclk_count(void)

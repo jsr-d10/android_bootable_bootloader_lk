@@ -287,7 +287,7 @@ static int hsusb_usb_read(void *_buf, unsigned len)
 
 	while (len > 0) {
 		xfer = (len > MAX_USBFS_BULK_SIZE) ? MAX_USBFS_BULK_SIZE : len;
-		req->buf = PA((addr_t)buf);
+		req->buf = pPA((addr_t)buf);
 		req->length = xfer;
 		req->complete = req_complete;
 		r = udc_request_queue(out, req);
@@ -313,7 +313,7 @@ static int hsusb_usb_read(void *_buf, unsigned len)
 	 * Force reload of buffer from memory
 	 * since transaction is complete now.
 	 */
-	arch_invalidate_cache_range(_buf, count);
+	arch_invalidate_cache_range((addr_t)_buf, count);
 	return count;
 
 oops:
@@ -328,7 +328,7 @@ static int hsusb_usb_write(void *buf, unsigned len)
 	if (fastboot_state == STATE_ERROR)
 		goto oops;
 
-	req->buf = PA((addr_t)buf);
+	req->buf = pPA((addr_t)buf);
 	req->length = len;
 	req->complete = req_complete;
 	r = udc_request_queue(in, req);
@@ -358,10 +358,10 @@ void fastboot_ack(const char *code, const char *reason)
 	if (reason == 0)
 		reason = "";
 
-	snprintf(response, MAX_RSP_SIZE, "%s%s", code, reason);
+	snprintf((char *)response, MAX_RSP_SIZE, "%s%s", code, reason);
 	fastboot_state = STATE_COMPLETE;
 
-	usb_if.usb_write(response, strlen(response));
+	usb_if.usb_write(response, strlen((char *)response));
 
 }
 
@@ -375,9 +375,9 @@ void fastboot_info(const char *reason)
 	if (reason == 0)
 		return;
 
-	snprintf(response, MAX_RSP_SIZE, "INFO%s", reason);
+	snprintf((char *)response, MAX_RSP_SIZE, "INFO%s", reason);
 
-	usb_if.usb_write(response, strlen(response));
+	usb_if.usb_write(response, strlen((char *)response));
 }
 
 void fastboot_fail(const char *reason)
@@ -415,8 +415,8 @@ static void cmd_download(const char *arg, void *data, unsigned sz)
 		return;
 	}
 
-	snprintf(response, MAX_RSP_SIZE, "DATA%08x", len);
-	if (usb_if.usb_write(response, strlen(response)) < 0)
+	snprintf((char *)response, MAX_RSP_SIZE, "DATA%08x", len);
+	if (usb_if.usb_write(response, strlen((char *)response)) < 0)
 		return;
 
 	r = usb_if.usb_read(download_base, len);

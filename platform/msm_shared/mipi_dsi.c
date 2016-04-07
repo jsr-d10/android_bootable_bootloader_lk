@@ -216,11 +216,11 @@ int mdss_dual_dsi_cmds_tx(struct mipi_dsi_cmd *cmds, int count)
 
 #if (DISPLAY_TYPE_MDSS == 1)
 	/* Align pload at 8 byte boundry */
-	off = pload;
+	off = (uint32_t)pload;
 	off &= 0x07;
 	if (off)
 		off = 8 - off;
-	off += pload;
+	off += (uint32_t)pload;
 
 	cm = cmds;
 	for (i = 0; i < count; i++) {
@@ -286,7 +286,7 @@ int mdss_dsi_cmds_rx(uint32_t **rp, int rp_len, int rdbk_len)
 	if (rdbk_len > 2) {
 		/*First 4 bytes + paded bytes will be header next len bytes would be payload */
 		for (i = 0; i < rdbk_len; i++) {
-			dp = *rp;
+			dp = (char *) *rp;
 			dp[i] = dp[(res + i) >> 2];
 		}
 	}
@@ -302,11 +302,11 @@ int mipi_dsi_cmds_tx(struct mipi_dsi_cmd *cmds, int count)
 	uint32_t off;
 
 	/* Align pload at 8 byte boundry */
-	off = pload;
+	off = (uint32_t)pload;
 	off &= 0x07;
 	if (off)
 		off = 8 - off;
-	off += pload;
+	off += (uint32_t)pload;
 
 	cm = cmds;
 	for (i = 0; i < count; i++) {
@@ -888,7 +888,7 @@ struct fbcon_config *mipi_init(void)
 	mipi_dsi_cmd_bta_sw_trigger();
 	mipi_novatek_manufacture_id();
 #endif
-	mipi_fb_cfg.base = MIPI_FB_ADDR;
+	mipi_fb_cfg.base = (void*)MIPI_FB_ADDR;
 
 	if (panel_info->mode == MIPI_VIDEO_MODE)
 		status += mipi_dsi_video_config(panel_info->num_of_lanes);

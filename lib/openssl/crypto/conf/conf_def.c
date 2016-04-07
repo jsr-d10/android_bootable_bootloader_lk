@@ -187,9 +187,9 @@ static int def_load(CONF *conf, const char *name, long *line)
 	BIO *in=NULL;
 
 #ifdef OPENSSL_SYS_VMS
-	in=BIO_new_file(name, "r");
+	in = (BIO *) BIO_new_file(name, "r");
 #else
-	in=BIO_new_file(name, "rb");
+	in = (BIO *) BIO_new_file(name, "rb");
 #endif
 	if (in == NULL)
 		{

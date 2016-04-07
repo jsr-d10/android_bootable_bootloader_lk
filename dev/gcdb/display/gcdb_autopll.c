@@ -138,6 +138,8 @@ static uint32_t calculate_div3(uint8_t bpp, uint8_t num_of_lanes)
 	}
 
 	pll_data.posdiv3--;	/* Register needs one value less */
+	
+	return ret;
 }
 
 static uint32_t calculate_vco(uint8_t bpp, uint8_t num_of_lanes)

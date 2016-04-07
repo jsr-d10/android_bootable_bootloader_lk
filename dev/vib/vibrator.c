@@ -52,7 +52,8 @@ void vib_turn_off()
 }
 
 /* Function to turn off vibrator when the vib_timer is expired. */
-static enum handler_return vib_timer_func(struct timer *v_timer, void *arg)
+static enum handler_return vib_timer_func(struct timer *v_timer, 
+	time_t now, void *arg)
 {
 	timer_cancel(&vib_timer);
 	vib_turn_off();

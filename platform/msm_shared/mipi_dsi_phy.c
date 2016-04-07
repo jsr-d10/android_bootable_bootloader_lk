@@ -197,7 +197,7 @@ void mdss_dsi_phy_sw_reset(uint32_t ctl_base)
 	udelay(100);
 }
 
-int mdss_dsi_phy_regulator_init(struct mdss_dsi_phy_ctrl *pd, uint32_t phy_base)
+void mdss_dsi_phy_regulator_init(struct mdss_dsi_phy_ctrl *pd, uint32_t phy_base)
 {
 	/* DSI0 and DSI1 have a common regulator */
 
@@ -366,5 +366,5 @@ int mdss_dsi_phy_init(struct mipi_dsi_panel_config *pinfo,
 	/* DSI_0_CLKOUT_TIMING_CTRL */
 	writel(0x41b, ctl_base + 0x0c4);
 	dmb();
-
+  return 0;
 }

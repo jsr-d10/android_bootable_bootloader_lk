@@ -53,7 +53,7 @@ hash_find(unsigned char *addr, unsigned int size, unsigned char *digest,
 	if (auth_alg == CRYPTO_AUTH_ALG_SHA1) {
 		if(platform_ce_type == CRYPTO_ENGINE_TYPE_SW)
 			/* Hardware CE is not present , use software hashing */
-			digest = SHA1(addr, size, digest);
+			SHA1(addr, size, digest);
 		else if (platform_ce_type == CRYPTO_ENGINE_TYPE_HW)
 			ret_val = crypto_sha1(addr, size, digest);
 		else
@@ -61,7 +61,7 @@ hash_find(unsigned char *addr, unsigned int size, unsigned char *digest,
 	} else if (auth_alg == CRYPTO_AUTH_ALG_SHA256) {
 		if(platform_ce_type == CRYPTO_ENGINE_TYPE_SW)
 			/* Hardware CE is not present , use software hashing */
-			digest = SHA256(addr, size, digest);
+			SHA256(addr, size, digest);
 		else if (platform_ce_type == CRYPTO_ENGINE_TYPE_HW)
 			ret_val = crypto_sha256(addr, size, digest);
 		else

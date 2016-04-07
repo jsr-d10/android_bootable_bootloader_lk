@@ -74,10 +74,10 @@ static uint32_t mdss_dsi_panel_reset(uint8_t enable)
 	return ret;
 }
 
-static uint32_t mdss_dsi_panel_clock(uint8_t enable,
+static int mdss_dsi_panel_clock(int enable,
 				struct msm_panel_info *pinfo)
 {
-	uint32_t ret = NO_ERROR;
+	int ret = NO_ERROR;
 
 	ret = calculate_clock_config(pinfo);
 	if (ret) {
@@ -85,14 +85,15 @@ static uint32_t mdss_dsi_panel_clock(uint8_t enable,
 		/* should it stop here ? check with display team */
 	}
 
-	ret = target_panel_clock(enable, pinfo);
+	ret = target_panel_clock((uint8_t)enable, pinfo);
 
 	return ret;
 }
 
-static int mdss_dsi_panel_power(uint8_t enable)
+static int mdss_dsi_panel_power(int _enable)
 {
 	int ret = NO_ERROR;
+	uint8_t enable = (uint8_t)_enable;
 
 	if (enable) {
 		ret = target_ldo_ctrl(enable);
@@ -148,11 +149,11 @@ static int mdss_dsi_panel_pre_init(void)
 	return ret;
 }
 
-static int mdss_dsi_bl_enable(uint8_t enable)
+static int mdss_dsi_bl_enable(int enable)
 {
 	int ret = NO_ERROR;
 
-	ret = panel_backlight_ctrl(enable);
+	ret = panel_backlight_ctrl((uint8_t)enable);
 	if (ret)
 		dprintf(CRITICAL, "Backlight %s failed\n", enable ? "enable" :
 							"disable");

@@ -262,6 +262,7 @@ void thread_exit(int retcode)
 	thread_resched();
 
 	panic("somehow fell through thread_exit()\n");
+	while (1);
 }
 
 static void idle_thread_routine(void)

@@ -66,7 +66,7 @@ void arm_mmu_map_section(addr_t paddr, addr_t vaddr, uint flags)
 
 void arm_mmu_init(void)
 {
-	int i;
+	uint32_t i;
 
 	/* set some mmu specific control bits:
 	 * access flag disabled, TEX remap disabled, mmu disabled

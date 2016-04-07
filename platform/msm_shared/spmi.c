@@ -90,8 +90,8 @@ void spmi_init(uint32_t chnl_num, uint32_t owner_id)
 
 static void write_wdata_from_array(uint8_t *array,
 	                               uint8_t reg_num,
-	                               uint8_t array_size,
-	                               uint8_t* bytes_written)
+	                               uint32_t array_size,
+	                               uint32_t* bytes_written)
 {
 	uint32_t shift_value[] = {0, 8, 16, 24};
 	int i;
@@ -358,7 +358,7 @@ int spmi_acc_irq(uint32_t periph_acc_irq, uint32_t status)
 		return 0;
 }
 
-void spmi_irq()
+static enum handler_return spmi_irq(void * arg)
 {
 	int i;
 	uint32_t status;
@@ -372,9 +372,10 @@ void spmi_irq()
 		if (status)
 			if (!spmi_acc_irq(i, status))
 				/* Not the correct interrupt, continue to wait */
-				return;
+				return 0;
 	}
 	mask_interrupt(EE0_KRAIT_HLOS_SPMI_PERIPH_IRQ);
+	return 0;
 }
 
 /* Enable interrupts on a particular peripheral: periph_id */
