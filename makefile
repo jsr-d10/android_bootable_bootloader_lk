@@ -50,7 +50,10 @@ ifeq ($(ENABLE_TRUSTZONE),1)
 endif
 
 INCLUDES := -I$(BUILDDIR) -Iinclude
-CFLAGS += -O2 -g -fno-builtin -finline -W -Wall -Wno-multichar -Wno-unused-parameter -Wno-unused-function -include $(CONFIGHEADER)
+CFLAGS += -O2 -g -fno-builtin -finline -W -Wall
+CFLAGS += -Wno-multichar -Wno-unused-parameter -Wno-unused-function
+CFLAGS += -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-sign-compare -Wno-unused-variable
+CFLAGS += -include $(CONFIGHEADER)
 #CFLAGS += -Werror
 ifeq ($(EMMC_BOOT),1)
   CFLAGS += -D_EMMC_BOOT=1
@@ -61,7 +64,10 @@ ifeq ($(SIGNED_KERNEL),1)
 endif
 
 # setup toolchain prefix
+#TOOLCHAIN_PATH = /home/android/cm11/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/
+#TOOLCHAIN_PREFIX = $(TOOLCHAIN_PATH)arm-eabi-
 TOOLCHAIN_PREFIX ?= arm-eabi-
+
 CFLAGS += -fstack-protector-all
 CPPFLAGS := -fno-exceptions -fno-rtti -fno-threadsafe-statics
 #CPPFLAGS += -Weffc++
