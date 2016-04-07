@@ -51,7 +51,7 @@
 /*---------------------------------------------------------------------------*/
 /* struct definition                                                         */
 /*---------------------------------------------------------------------------*/
-typedef struct panel_struct{
+struct panel_struct{
 	struct panel_config         *paneldata;
 	struct panel_resolution     *panelres;
 	struct color_info           *color;

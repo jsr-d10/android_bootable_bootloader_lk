@@ -30,6 +30,10 @@
 
 #if ARM_WITH_MMU
 
+#ifdef MB
+#undef MB
+#endif
+
 #define MB (1024*1024)
 
 /* the location of the table may be brought in from outside */

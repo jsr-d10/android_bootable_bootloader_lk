@@ -307,12 +307,12 @@ void mdss_intf_tg_setup(struct msm_panel_info *pinfo, uint32_t intf_base)
 
 	struct lcdc_panel_info *lcdc = NULL;
 
-	if (pinfo == NULL)
-		return ERR_INVALID_ARGS;
+	if (pinfo == NULL) {
+		dprintf(CRITICAL, "%s: ERROR: pinfo = NULL \n", __func__);
+		return;
+	}
 
 	lcdc =  &(pinfo->lcdc);
-	if (lcdc == NULL)
-		return ERR_INVALID_ARGS;
 
 	adjust_xres = pinfo->xres;
 	if (pinfo->lcdc.split_display) {

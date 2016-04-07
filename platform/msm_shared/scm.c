@@ -143,7 +143,7 @@ static int scm_call_atomic(uint32_t svc, uint32_t cmd, uint32_t arg1)
 {
 	uint32_t context_id;
 	register uint32_t r0 __asm__("r0") = SCM_ATOMIC(svc, cmd, 1);
-	register uint32_t r1 __asm__("r1") = &context_id;
+	register uint32_t r1 __asm__("r1") = (uint32_t) &context_id;
 	register uint32_t r2 __asm__("r2") = arg1;
 
 	__asm__ volatile(
@@ -172,7 +172,7 @@ int scm_call_atomic2(uint32_t svc, uint32_t cmd, uint32_t arg1, uint32_t arg2)
 {
 	int context_id;
 	register uint32_t r0 __asm__("r0") = SCM_ATOMIC(svc, cmd, 2);
-	register uint32_t r1 __asm__("r1") = &context_id;
+	register uint32_t r1 __asm__("r1") = (uint32_t) &context_id;
 	register uint32_t r2 __asm__("r2") = arg1;
 	register uint32_t r3 __asm__("r3") = arg2;
 
@@ -657,12 +657,12 @@ int scm_xpu_err_fatal_init()
 }
 
 /* SCM Random Command */
-int scm_random(uint32_t * rbuf, uint32_t  r_len)
+int scm_random(uint8_t * rbuf, uint32_t  r_len)
 {
 	int ret;
 	struct tz_prng_data data;
 
-	data.out_buf     = (uint8_t*) rbuf;
+	data.out_buf     = rbuf;
 	data.out_buf_size = r_len;
 
 	/*
@@ -681,7 +681,7 @@ int scm_random(uint32_t * rbuf, uint32_t  r_len)
 void * get_canary()
 {
 	void * canary;
-	if(scm_random(&canary, sizeof(canary))) {
+	if(scm_random((uint8_t *)&canary, sizeof(canary))) {
 		dprintf(CRITICAL,"scm_call for random failed !!!");
 		/*
 		* fall back to use lib rand API if scm call failed.

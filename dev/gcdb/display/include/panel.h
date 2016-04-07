@@ -43,8 +43,7 @@
 /*---------------------------------------------------------------------------*/
 
 /*Panel Configuration */
-typedef struct panel_config{
-
+struct panel_config{
 	char  *panel_node_id;
 	char  *panel_controller;
 	char  *panel_compatible;
@@ -68,8 +67,7 @@ typedef struct panel_config{
 	char  *slave_panel_node_id;
 };
 
-typedef struct panel_resolution{
-
+struct panel_resolution{
 	uint16_t panel_width;
 	uint16_t panel_height;
 	uint16_t hfront_porch;
@@ -90,7 +88,7 @@ typedef struct panel_resolution{
 	uint16_t invert_hsync_polarity;
 };
 
-typedef struct color_info{
+struct color_info{
 	uint8_t  color_format;
 	uint8_t  color_order;
 	uint8_t  underflow_color;
@@ -99,12 +97,12 @@ typedef struct color_info{
 	uint8_t  pixel_alignment;
 };
 
-typedef struct command_state {
+struct command_state {
 	uint8_t oncommand_state;
 	uint8_t offcommand_state;
 };
 
-typedef struct videopanel_info {
+struct videopanel_info {
 	uint8_t hsync_pulse;
 	uint8_t hfp_power_mode;
 	uint8_t hbp_power_mode;
@@ -116,7 +114,7 @@ typedef struct videopanel_info {
 	uint32_t  bllp_eof_power;
 };
 
-typedef struct commandpanel_info {
+struct commandpanel_info {
 	uint8_t techeck_enable;
 	uint8_t tepin_select;
 	uint8_t teusing_tepin;
@@ -131,7 +129,7 @@ typedef struct commandpanel_info {
 	uint32_t cmdmode_idletime;
 };
 
-typedef struct lane_configuration {
+struct lane_configuration {
 	uint8_t dsi_lanes;
 	uint8_t dsi_lanemap;
 	uint8_t lane0_state;
@@ -141,7 +139,7 @@ typedef struct lane_configuration {
 	uint8_t force_clk_lane_hs;
 };
 
-typedef struct panel_timing {
+struct panel_timing {
 	uint8_t dsi_mdp_trigger;
 	uint8_t dsi_dma_trigger;
 	uint8_t tclk_post;
@@ -154,13 +152,13 @@ enum {
 	BL_DCS,
 };
 
-typedef struct panel_reset_sequence {
+struct panel_reset_sequence {
 	uint8_t pin_state[TOTAL_RESET_GPIO_CTRL];
 	uint32_t sleep[TOTAL_RESET_GPIO_CTRL];
 	uint8_t pin_direction;
 };
 
-typedef struct backlight {
+struct backlight {
 	uint16_t bl_interface_type;
 	uint16_t bl_min_level;
 	uint16_t bl_max_level;

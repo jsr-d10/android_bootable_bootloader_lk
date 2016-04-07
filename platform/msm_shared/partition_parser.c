@@ -557,7 +557,7 @@ static void
 patch_gpt(uint8_t *gptImage, uint64_t density, uint32_t array_size,
 		  uint32_t max_part_count, uint32_t part_entry_size, uint32_t block_size)
 {
-	unsigned int partition_entry_array_start;
+	unsigned char *partition_entry_array_start;
 	unsigned char *primary_gpt_header;
 	unsigned char *secondary_gpt_header;
 	unsigned int offset;
@@ -636,7 +636,7 @@ static unsigned int write_gpt(uint32_t size, uint8_t *gptImage, uint32_t block_s
 	unsigned long long backup_header_lba;
 	unsigned int max_partition_count = 0;
 	unsigned int partition_entry_size;
-	unsigned int partition_entry_array_start;
+	unsigned char *partition_entry_array_start;
 	unsigned char *primary_gpt_header;
 	unsigned char *secondary_gpt_header;
 	unsigned int offset;
@@ -717,7 +717,7 @@ static unsigned int write_gpt(uint32_t size, uint8_t *gptImage, uint32_t block_s
 	/* Writing the partition entries array for the primary header */
 	partition_entry_array_start = primary_gpt_header + block_size;
 	ret = write_gpt_partition_array(primary_gpt_header,
-					partition_entry_array_start,
+					(uint32_t)partition_entry_array_start,
 					partition_entry_array_size, block_size);
 	if (ret) {
 		dprintf(CRITICAL,
@@ -729,7 +729,7 @@ static unsigned int write_gpt(uint32_t size, uint8_t *gptImage, uint32_t block_s
 	partition_entry_array_start = primary_gpt_header + block_size +
 	    partition_entry_array_size;
 	ret = write_gpt_partition_array(secondary_gpt_header,
-					partition_entry_array_start,
+					(uint32_t)partition_entry_array_start,
 					partition_entry_array_size, block_size);
 	if (ret) {
 		dprintf(CRITICAL,

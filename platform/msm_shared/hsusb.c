@@ -306,20 +306,19 @@ int udc_request_queue(struct udc_endpoint *ept, struct udc_request *_req)
 					ROUNDUP(sizeof(struct ept_queue_item), CACHE_LINE));
 			if (!item) {
 				dprintf(ALWAYS, "allocate USB item fail ept%d"
-							"%s queue\n",
-							"td count = %d\n",
+							" %s queue, TD count = %d\n",
 							ept->num,
 							ept->in ? "in" : "out",
 							count);
 				return -1;
 			} else {
 				count ++;
-				curr_item->next = PA(item);
+				curr_item->next = (unsigned) PA(item);
 				item->next = TERMINATE;
 			}
 		} else
 			/* Since next TD in chain already exists */
-			item = VA(curr_item->next);
+			item = (struct ept_queue_item *) VA(curr_item->next);
 
 		/* Update TD with transfer information */
 		item->info = INFO_BYTES(xfer) | INFO_ACTIVE;
@@ -338,7 +337,7 @@ int udc_request_queue(struct udc_endpoint *ept, struct udc_request *_req)
 	curr_item->next = TERMINATE;
 	curr_item->info |= INFO_IOC;
 	enter_critical_section();
-	ept->head->next = PA(req->item);
+	ept->head->next = (unsigned) PA(req->item);
 	ept->head->info = 0;
 	ept->req = req;
 	arch_clean_invalidate_cache_range((addr_t) ept,
@@ -357,7 +356,7 @@ int udc_request_queue(struct udc_endpoint *ept, struct udc_request *_req)
 		if (curr_item->next == TERMINATE)
 			item = NULL;
 		else
-			item = curr_item->next;
+			item = (struct ept_queue_item *) curr_item->next;
 		arch_clean_invalidate_cache_range((addr_t) curr_item,
 					  sizeof(struct ept_queue_item));
 	}
@@ -384,13 +383,13 @@ static void handle_ept_complete(struct udc_endpoint *ept)
 
 	if(ept->req)
 	{
-		req = VA(ept->req);
+		req = (struct usb_request *) VA(ept->req);
 		arch_invalidate_cache_range((addr_t) ept->req,
 						sizeof(struct usb_request));
 	}
 
 	if (req) {
-		item = VA(req->item);
+		item = (struct ept_queue_item *) VA(req->item);
 		/* total transfer length for transacation */
 		total_len = req->req.length;
 		ept->req = 0;
@@ -424,8 +423,7 @@ static void handle_ept_complete(struct udc_endpoint *ept)
 				/*
 				 * Record the data transferred for the last TD
 				 */
-				actual += total_len - (item->info >> 16)
-								& 0x7FFF;
+				actual += total_len - ((item->info >> 16) & 0x7FFF);
 				total_len = 0;
 				break;
 			} else {
@@ -435,10 +433,10 @@ static void handle_ept_complete(struct udc_endpoint *ept)
 				 * TD woulb the max possible TD transfer size
 				 * (16K)
 				 */
-				actual += MAX_TD_XFER_SIZE - (item->info >> 16) & 0x7FFF;
-				total_len -= MAX_TD_XFER_SIZE - (item->info >> 16) & 0x7FFF;
+				actual += MAX_TD_XFER_SIZE - ((item->info >> 16) & 0x7FFF);
+				total_len -= MAX_TD_XFER_SIZE - ((item->info >> 16) & 0x7FFF);
 				/*Move to next item in chain*/
-				item = VA(item->next);
+				item = (struct ept_queue_item *) VA(item->next);
 			}
 		}
 		status = 0;
@@ -524,7 +522,7 @@ static void setup_tx(void *buf, unsigned len)
 {
 	DBG("setup_tx %p %d\n", buf, len);
 	memcpy(ep0req->buf, buf, len);
-	ep0req->buf = PA((addr_t)ep0req->buf);
+	ep0req->buf = (void *) PA((addr_t)ep0req->buf);
 	ep0req->complete = ep0in_complete;
 	ep0req->length = len;
 	udc_request_queue(ep0in, ep0req);

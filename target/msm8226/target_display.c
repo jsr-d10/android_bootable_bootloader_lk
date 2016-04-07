@@ -322,7 +322,7 @@ int target_ldo_ctrl(uint8_t enable)
 			0x100 * ldo_entry_array[ldocounter].ldo_id),
 			ldo_entry_array[ldocounter].ldo_type);
 
-		dprintf(SPEW, "Setting %s\n",
+		dprintf(SPEW, "Setting %u\n",
 				ldo_entry_array[ldocounter].ldo_id);
 
 		/* Set voltage during power on */

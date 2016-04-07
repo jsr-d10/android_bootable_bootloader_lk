@@ -74,10 +74,11 @@ static const uint32_t tuning_block_128[] = {
  *           Once we receive the interrupt, we will ack the power control
  *           register that we have successfully completed pmic transactions
  */
-static enum handler_return sdhci_int_handler(struct sdhci_msm_data *data)
+static enum handler_return sdhci_int_handler(void * arg)
 {
 	uint32_t ack;
 	uint32_t status;
+	struct sdhci_msm_data *data = (struct sdhci_msm_data *) arg;
 
 	/*
 	 * Read the mask register to check if BUS & IO level
@@ -542,9 +543,9 @@ static uint32_t sdhci_msm_cdclp533_calibration(struct sdhci_host *host)
  */
 uint32_t sdhci_msm_execute_tuning(struct sdhci_host *host, uint32_t bus_width)
 {
-	uint32_t *tuning_block;
+	const uint32_t *tuning_block;
 	uint32_t *tuning_data;
-	uint32_t tuned_phases[MAX_PHASES] = {{0}};
+	uint32_t tuned_phases[MAX_PHASES] = {0};
 	uint32_t size;
 	uint32_t phase = 0;
 	uint32_t tuned_phase_cnt = 0;

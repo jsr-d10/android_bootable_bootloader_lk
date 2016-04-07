@@ -82,7 +82,7 @@ void jtag_cmd_loop(void (*do_cmd) (const char *, unsigned, unsigned, unsigned))
 		if (jtag_cmd_pending()) {
 			do_cmd((const char *)_jtag_cmd_buffer, _jtag_arg0,
 			       _jtag_arg1, _jtag_arg2);
-			for (n = 0; n < 256; n++)
+			for (n = 0; n < 128; n++)
 				_jtag_cmd_buffer[n] = 0;
 			_jtag_arg0 = 0;
 			_jtag_arg1 = 0;

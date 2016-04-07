@@ -655,7 +655,7 @@ struct mdss_dsi_phy_ctrl {
 	enum dsi_reg_mode regulator_mode;
 };
 
-typedef struct mdss_dsi_pll_config {
+struct mdss_dsi_pll_config {
 	uint32_t  pixel_clock;
 	uint32_t  pixel_clock_mhz;
 	uint32_t  byte_clock;
@@ -1026,4 +1026,10 @@ int mipi_dsi_on();
 int mipi_dsi_off(struct msm_panel_info *pinfo);
 int mipi_dsi_cmds_tx(struct mipi_dsi_cmd *cmds, int count);
 int mipi_dsi_cmds_rx(char **rp, int len);
+
+uint64_t div_s64(uint64_t dividend, uint32_t divisor, uint32_t *remainder);
+void mdss_dsi_uniphy_pll_lock_detect_setting(uint32_t pll_base);
+void mdss_dsi_uniphy_pll_sw_reset(uint32_t pll_base);
+int32_t mdss_dsi_auto_pll_config(uint32_t pll_base, uint32_t ctl_base, struct mdss_dsi_pll_config *pd);
+
 #endif

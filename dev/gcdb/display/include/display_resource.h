@@ -47,8 +47,7 @@
 /*---------------------------------------------------------------------------*/
 
 /*GPIO pin structure to define reset pin, enable pin, te pin, etc. */
-typedef struct gpio_pin{
-
+struct gpio_pin{
 	char    *pin_source;
 	uint32_t pin_id;
 	uint32_t pin_strength;
@@ -58,7 +57,7 @@ typedef struct gpio_pin{
 };
 
 /*LDO entry structure for different LDO entries. */
-typedef struct ldo_entry{
+struct ldo_entry{
 	char    *ldo_name;
 	uint32_t ldo_id;
 	uint32_t ldo_type;

@@ -60,7 +60,7 @@ static int msm_fb_alloc(struct fbcon_config *fb)
 		return ERROR;
 
 	if (fb->base == NULL)
-		fb->base = memalign(4096, fb->width
+		fb->base = (void *) memalign(4096, fb->width
 							* fb->height
 							* (fb->bpp / 8));
 
