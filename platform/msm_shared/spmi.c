@@ -41,8 +41,10 @@ static uint32_t pmic_arb_chnl_num;
 static uint32_t pmic_arb_owner_id;
 static uint8_t pmic_irq_perph_id;
 static spmi_callback callback;
-static uint32_t pmic_arb_ver;
-static uint8_t *chnl_tbl;
+static uint32_t pmic_arb_ver = 0;
+static uint8_t *chnl_tbl = NULL;
+
+#if SPMI_CORE_V2
 
 static void spmi_lookup_chnl_number()
 {
@@ -58,34 +60,38 @@ static void spmi_lookup_chnl_number()
 
 	for(i = 0; i < MAX_PERIPH ; i++)
 	{
-#if SPMI_CORE_V2
 		slave_id = (readl(PMIC_ARB_REG_CHLN(i)) & 0xf0000) >> 16;
 		ppid_address = (readl(PMIC_ARB_REG_CHLN(i)) & 0xff00) >> 8;
-#endif
 		chnl_tbl[CHNL_IDX(slave_id, ppid_address)] = i;
 	}
 }
+
+#endif
 
 /* Function to initialize SPMI controller.
  * chnl_num : Channel number to be used by this EE.
  */
 void spmi_init(uint32_t chnl_num, uint32_t owner_id)
 {
+#if SPMI_CORE_V2
 	/* Read the version numver */
 	pmic_arb_ver = readl(PMIC_ARB_SPMI_HW_VERSION);
 
 	if (pmic_arb_ver < PMIC_ARB_V2)
 	{
+#endif
 		/* Initialize PMIC Arbiter Channel Number to
 		 * 0 by default of V1 HW
 		 */
 		pmic_arb_chnl_num = chnl_num;
 		pmic_arb_owner_id = owner_id;
+#if SPMI_CORE_V2
 	}
 	else
 	{
 		spmi_lookup_chnl_number();
 	}
+#endif
 }
 
 static void write_wdata_from_array(uint8_t *array,

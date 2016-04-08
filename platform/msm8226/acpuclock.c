@@ -112,7 +112,7 @@ void clock_init_mmc(uint32_t interface)
 /* Configure MMC clock */
 void clock_config_mmc(uint32_t interface, uint32_t freq)
 {
-	int ret;
+	int ret = 0;
 	uint32_t reg;
 	char clk_name[64];
 
