@@ -97,6 +97,9 @@ enum glass_types {
 	GLASS_TYPE_UNKNOWN
 };
 
+#define DISP_ENABLE_GPIO     23
+#define DISP_RESET_GPIO      25
+
 static uint32_t panel_id;
 static uint32_t glass_type = GLASS_TYPE_UNKNOWN;
 
@@ -190,6 +193,10 @@ int oem_panel_on()
 		/* SSD2080M needs extra delay to avoid unexpected artifacts */
 		mdelay(SSD2080M_720P_VIDEO_PANEL_ON_DELAY);
 	}
+	mdelay(80);
+	gpio_tlmm_config(DISP_ENABLE_GPIO, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_8MA, GPIO_DISABLE);
+	gpio_set_dir(DISP_ENABLE_GPIO, 2);
+	gpio_set_value(DISP_ENABLE_GPIO, 1);
 	return NO_ERROR;
 }
 
