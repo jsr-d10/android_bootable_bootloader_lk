@@ -46,8 +46,27 @@
 /*---------------------------------------------------------------------------*/
 
 static struct panel_config nt35521_720p_video_panel_data = {
-  "qcom,mdss_dsi_nt35521_720p_video", "dsi:0:", "qcom,mdss-dsi-panel",
-  10, 0, "DISPLAY_1", 0, 424000000, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  .panel_node_id     = "qcom,mdss_dsi_nt35521_720p_video",
+  .panel_controller  = "dsi:0:",
+  .panel_compatible  = "qcom,mdss-dsi-panel",
+  .panel_interface   = 10,
+  .panel_type        = 0,     // MIPI_VIDEO_PANEL
+  .panel_destination = "DISPLAY_1",
+  .panel_orientation = 0,
+  .panel_clockrate   = 424000000,
+  .panel_framerate   = 60,
+  .panel_channelid   = 0,
+  .dsi_virtualchannel_id = 0,
+  .panel_broadcast_mode = 0,
+  .panel_lp11_init   = 0,
+  .panel_init_delay  = 0,
+  .dsi_stream        = 0,
+  .interleave_mode   = 0,
+  .panel_bitclock_freq = 0,
+  .panel_operating_mode = 0,
+  .panel_with_enable_gpio = 0,
+  .mode_gpio_state = 0,
+  .slave_panel_node_id = NULL,
 };
 
 /*---------------------------------------------------------------------------*/
@@ -1134,7 +1153,8 @@ static struct mipi_dsi_cmd nt35521_720p_video_off_command[] = {
 
 
 static struct command_state nt35521_720p_video_state = {
-  0, 1
+  .oncommand_state  = 0,
+  .offcommand_state = 1,
 };
 
 /*---------------------------------------------------------------------------*/
@@ -1150,7 +1170,15 @@ static struct commandpanel_info nt35521_720p_video_command_panel = {
 /*---------------------------------------------------------------------------*/
 
 static struct videopanel_info nt35521_720p_video_video_panel = {
-  1, 0, 0, 0, 1, 1, 2, 0, 0x9
+  .hsync_pulse = 1,
+  .hfp_power_mode = 0,
+  .hbp_power_mode = 0,
+  .hsa_power_mode = 0,
+  .bllp_eof_power_mode = 1,
+  .bllp_power_mode = 1,
+  .traffic_mode = 2,
+  .dma_delayafter_vsync = 0,
+  .bllp_eof_power = 0x9,
 };
 
 /*---------------------------------------------------------------------------*/
@@ -1158,7 +1186,13 @@ static struct videopanel_info nt35521_720p_video_video_panel = {
 /*---------------------------------------------------------------------------*/
 
 static struct lane_configuration nt35521_720p_video_lane_config = {
-  4, 0, 1, 1, 1, 1, 0
+  .dsi_lanes = 4,
+  .dsi_lanemap = 0,
+  .lane0_state = 1,
+  .lane1_state = 1,
+  .lane2_state = 1,
+  .lane3_state = 1,
+  .force_clk_lane_hs = 0,
 };
 
 /*---------------------------------------------------------------------------*/
@@ -1181,7 +1215,7 @@ static struct panel_timing nt35521_720p_video_timing_info = {
 };
 
 static struct panel_reset_sequence nt35521_720p_video_panel_reset_seq = {
-{ 1, 0, 1, }, { 20, 20, 20, }, 2
+  { 1, 0, 1, 0, 0}, { 20, 20, 20, 0, 0}, 2
 };
 
 /*---------------------------------------------------------------------------*/
