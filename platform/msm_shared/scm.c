@@ -497,15 +497,15 @@ int scm_protect_keystore(uint32_t * img_ptr, uint32_t  img_len)
 	if(!ret)
 	{
 		if(protect_rsp.status == TZBSP_SSD_PKS_SUCCESS)
-			dprintf(INFO,"Successfully loaded the keystore ");
+			dprintf(INFO,"Successfully loaded the keystore\n");
 		else
 		{
-			dprintf(INFO,"Loading keystore failed status %d ",protect_rsp.status);
+			dprintf(INFO,"Loading keystore failed status %d\n", protect_rsp.status);
 			ret = protect_rsp.status;
 		}
 	}
 	else
-	  dprintf(INFO,"scm_call failed ");
+	  dprintf(INFO,"scm_call failed\n");
 
 	return ret;
 }
