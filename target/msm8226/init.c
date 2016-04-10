@@ -67,6 +67,7 @@ static void set_sdc_power_ctrl(void);
 #define CRYPTO_ENGINE_CMD_ARRAY_SIZE       20
 
 #define TLMM_VOL_UP_BTN_GPIO    106
+#define TLMM_FN_BTN_GPIO    107
 #define VIBRATE_TIME    250
 
 #define SSD_CE_INSTANCE         1
@@ -139,7 +140,7 @@ void target_early_init(void)
 }
 
 /* Return 1 if vol_up pressed */
-static int target_volume_up()
+static int target_volume_up_pressed()
 {
 	uint8_t status = 0;
 
@@ -155,21 +156,50 @@ static int target_volume_up()
 }
 
 /* Return 1 if vol_down pressed */
-uint32_t target_volume_down()
+uint32_t target_volume_down_pressed()
 {
 	/* Volume down button tied in with PMIC RESIN. */
 	return pm8x41_resin_status();
+}
+
+/* Return 1 if function key pressed */
+static int target_function_pressed()
+{
+	uint8_t status = 0;
+
+	gpio_tlmm_config(TLMM_FN_BTN_GPIO, 0, GPIO_INPUT, GPIO_PULL_UP, GPIO_2MA, GPIO_ENABLE);
+
+	thread_sleep(10);
+
+	/* Get status of GPIO */
+	status = gpio_status(TLMM_FN_BTN_GPIO);
+
+	/* Active low signal. */
+	return !status;
+}
+
+
+/* Return 1 if power key pressed */
+uint32_t target_power_pressed()
+{
+        return pm8x41_get_pwrkey_is_pressed();
 }
 
 static void target_keystatus()
 {
 	keys_init();
 
-	if(target_volume_down())
+	if(target_volume_down_pressed())
 		keys_post_event(KEY_VOLUMEDOWN, 1);
 
-	if(target_volume_up())
+	if(target_volume_up_pressed())
 		keys_post_event(KEY_VOLUMEUP, 1);
+
+        if(target_function_pressed())
+		keys_post_event(KEY_FUNCTION, 1);
+
+        if(target_power_pressed())
+		keys_post_event(KEY_POWER, 1);
 }
 
 /* Set up params for h/w CRYPTO_ENGINE. */

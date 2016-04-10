@@ -41,6 +41,25 @@ void keys_init(void)
 	memset(key_bitmap, 0, sizeof(key_bitmap));
 }
 
+void key_print_state(uint16_t code, int16_t value) {
+        char *name = NULL;
+        switch(code) {
+            case KEY_VOLUMEDOWN:
+                name = "KEY_VOLUMEDOWN";
+                break;
+            case KEY_VOLUMEUP:
+                name = "KEY_VOLUMEUP";
+                break;
+            case KEY_FUNCTION:
+                name = "KEY_FUNCTION";
+                break;
+            case KEY_POWER:
+                name = "KEY_POWER";
+                break;
+        }
+	dprintf(INFO, "key state change: %s (code: %d) state: %d\n", name, code, value);
+}
+
 void keys_post_event(uint16_t code, int16_t value)
 {
 	if (code >= MAX_KEYS) {
@@ -53,6 +72,7 @@ void keys_post_event(uint16_t code, int16_t value)
 		bitmap_set(key_bitmap, code);
 	else
 		bitmap_clear(key_bitmap, code);
+        key_print_state(code, value);
 
 //	dprintf(INFO, "key state change: %d %d\n", code, value);
 }

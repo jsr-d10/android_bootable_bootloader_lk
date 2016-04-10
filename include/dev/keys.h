@@ -82,6 +82,9 @@
 #define KEY_BACK	0x123
 #define KEY_MENU	0x124
 
+#define KEY_FUNCTION	0x125
+#define KEY_POWER	0x126
+
 #define MAX_KEYS	0x1ff
 
 void keys_init(void);
