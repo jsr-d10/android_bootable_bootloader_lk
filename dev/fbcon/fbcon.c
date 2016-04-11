@@ -69,29 +69,9 @@ static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, c
 		}
 		if (config->con.font->width < config->con.sym_width) {
 			unsigned kx = config->con.sym_width - config->con.font->width;
-			for (x = 0; x < kx; x++) {
-				*(uint16_t *)pixels = (uint16_t)config->con.bg_color;
-				if (config->pixel_size == 3) {
-					*(pixels + 2) = (uint8_t)(config->con.bg_color >> 16);
-				}
-				pixels += config->pixel_size;
-			}
+			pixels += kx * config->pixel_size;
 		}
 		glyph += gw;
-		pixels += stride;
-	}
-	if (config->con.font->height < config->con.sym_height) {
-		unsigned ky = config->con.sym_height - config->con.font->height;
-		unsigned kx = config->con.sym_width;
-		for (y = 0; y < ky; y++) {
-			for (x = 0; x < kx; x++) {
-				*(uint16_t *)pixels = (uint16_t)config->con.bg_color;
-				if (config->pixel_size == 3) {
-					*(pixels + 2) = (uint8_t)(config->con.bg_color >> 16);
-				}
-				pixels += config->pixel_size;
-			}
-		}
 		pixels += stride;
 	}
 }
@@ -133,10 +113,44 @@ void fbcon_clear(void)
 	memset(config->base, 0, size);
 }
 
+void fix_pos(unsigned * x, unsigned * y, unsigned * w, unsigned * h)
+{
+	if (x) {
+		if (*x >= config->con.max.x) *x = config->con.max.x - 1;
+	}
+	if (y) {
+		if (*y >= config->con.max.y) *y = config->con.max.y - 1;
+	}
+	if (w) {
+		unsigned xx = x ? *x : 0;
+		if (xx + *w >= config->con.max.x) *w = config->con.max.x - 1 - xx;
+	}
+	if (h) {
+		unsigned yy = y ? *y : 0;
+		if (yy + *h >= config->con.max.y) *w = config->con.max.y - 1 - yy;
+	}
+}
+
+uint8_t * get_char_pos_ptr(unsigned x, unsigned y)
+{
+	unsigned offset;
+	uint8_t * pixels = config->base;
+
+	fix_pos(&x, &y, NULL, NULL);
+	offset = config->con.cur.y * config->con.sym_height * config->stride;
+	offset += config->con.cur.x * config->con.sym_width;
+	pixels += offset * config->pixel_size;
+	return pixels;
+} 
+
+uint8_t * get_cursor_pos_ptr()
+{
+	return get_char_pos_ptr(config->con.cur.x, config->con.cur.y);
+} 
+
 void fbcon_putc(char c)
 {
 	uint8_t * pixels = NULL;	
-	uint32_t offset;
 	uint8_t cc = (uint8_t)c;
 
 	/* ignore anything that happens before fbcon is initialized */
@@ -153,9 +167,7 @@ void fbcon_putc(char c)
 		return;
 	}
 
-	offset = config->con.cur.y * config->con.sym_height * config->stride;
-	offset += config->con.cur.x * config->con.sym_width;
-	pixels = config->base + offset * config->pixel_size;
+	pixels = get_cursor_pos_ptr();
 	fbcon_drawglyph(pixels, config->con.fg_color, config->stride, c);
 
 	config->con.cur.x++;
@@ -181,18 +193,37 @@ void fbcon_print(char * str)
 	}
 }
 
+void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h)
+{
+	unsigned ky, kx, iy, ix, iw, ih;
+	unsigned stride;
+	uint8_t * pixels;
+
+	if (x == 0 && y == 0 && w == 0 && y == 0) {
+		w = config->con.max.x;
+		h = config->con.max.y;
+	}
+	fix_pos(&x, &y, &w, &h);
+	pixels = get_char_pos_ptr(x, y);
+	iw = w * config->con.sym_width;
+	ih = h * config->con.sym_height;
+	stride = (config->stride - iw) * config->pixel_size;
+
+	for (iy = 0; iy < ih; iy++) {
+		for (ix = 0; ix < iw; ix++) {
+			*(uint16_t *)pixels = (uint16_t)bg;
+			*(pixels + 2) = (uint8_t)(bg >> 16);
+			pixels += config->pixel_size;
+		}
+		pixels += stride;
+	}
+}
+
 void fbcon_set_cursor_pos(unsigned x, unsigned y)
 {
-	if (x >= config->con.max.x) {
-		config->con.cur.x = config->con.max.x - 1;
-	} else {
-		config->con.cur.x = x;
-	}
-	if (y >= config->con.max.y) {
-		config->con.cur.y = config->con.max.y - 1;
-	} else {
-		config->con.cur.y = y;
-	}
+	fix_pos(&x, &y, NULL, NULL);
+	config->con.cur.x = x;
+	config->con.cur.y = y;
 }
 
 void fbcon_optimize_font_bitmap(struct raster_font * font)
