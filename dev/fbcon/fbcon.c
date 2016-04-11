@@ -36,53 +36,63 @@
 #include <platform.h>
 #include <string.h>
 
-#include "font5x12.h"
+static struct fbcon_config * config = NULL;
 
-struct pos {
-	int x;
-	int y;
-};
-
-static struct fbcon_config *config = NULL;
-
-#define RGB565_BLACK		0x0000
-#define RGB565_WHITE		0xffff
-
-#define RGB888_BLACK            0x000000
-#define RGB888_WHITE            0xffffff
-
-#define FONT_WIDTH		5
-#define FONT_HEIGHT		12
-
-static uint32_t     pixel_size;
-static uint32_t     BGCOLOR;
-static uint32_t     FGCOLOR;
-
-static struct pos		cur_pos;
-static struct pos		max_pos;
-
-static void fbcon_drawglyph(uint8_t *pixels, uint32_t paint, unsigned stride,
-			    unsigned *glyph)
+static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, char c)
 {
-	unsigned i, x, y, data;
-	stride -= FONT_WIDTH;
-	stride *= pixel_size;
+	unsigned cc, gw;
+	unsigned i, x, y;
+	uint32_t data;
+	uint8_t * glyph;
 
-	for (i = 0; i < 2; i++) {
-		data = glyph[i];
-		for (y = 0; y < (FONT_HEIGHT / 2); y++) {
-			for (x = 0; x < FONT_WIDTH; x++) {
-				if (data & 1) {
-					*(uint16_t *)pixels = (uint16_t)paint;
-					if (pixel_size == 3) {
-						*(pixels + 2) = (uint8_t)(paint >> 16);
-					}
+	stride -= config->con.sym_width;
+	stride *= config->pixel_size;
+
+	gw = config->con.font->width / 8;
+	cc = (uint8_t)c;
+	if (cc < config->con.font->first_char) cc = '?';
+	if (cc > config->con.font->last_char)  cc = '?';
+	cc -= config->con.font->first_char;
+	glyph = config->con.font->bitmap + cc * gw * config->con.font->height;
+
+	for (y = 0; y < config->con.font->height; y++) {
+		data = *(uint32_t *)glyph;
+		for (x = 0; x < config->con.font->width; x++) {
+			if (data & 1) {
+				*(uint16_t *)pixels = (uint16_t)paint;
+				if (config->pixel_size == 3) {
+					*(pixels + 2) = (uint8_t)(paint >> 16);
 				}
-				data >>= 1;
-				pixels += pixel_size;
 			}
-			pixels += stride;
+			data >>= 1;
+			pixels += config->pixel_size;
 		}
+		if (config->con.font->width < config->con.sym_width) {
+			unsigned kx = config->con.sym_width - config->con.font->width;
+			for (x = 0; x < kx; x++) {
+				*(uint16_t *)pixels = (uint16_t)config->con.bg_color;
+				if (config->pixel_size == 3) {
+					*(pixels + 2) = (uint8_t)(config->con.bg_color >> 16);
+				}
+				pixels += config->pixel_size;
+			}
+		}
+		glyph += gw;
+		pixels += stride;
+	}
+	if (config->con.font->height < config->con.sym_height) {
+		unsigned ky = config->con.sym_height - config->con.font->height;
+		unsigned kx = config->con.sym_width;
+		for (y = 0; y < ky; y++) {
+			for (x = 0; x < kx; x++) {
+				*(uint16_t *)pixels = (uint16_t)config->con.bg_color;
+				if (config->pixel_size == 3) {
+					*(pixels + 2) = (uint8_t)(config->con.bg_color >> 16);
+				}
+				pixels += config->pixel_size;
+			}
+		}
+		pixels += stride;
 	}
 }
 
@@ -94,115 +104,182 @@ static void fbcon_flush(void)
 		while (!config->update_done());
 }
 
-/* TODO: Take stride into account */
 static void fbcon_scroll_up(void)
 {
-	unsigned short *dst = config->base;
-	unsigned short *src = dst + (config->width * FONT_HEIGHT);
-	unsigned count = config->width * (config->height - FONT_HEIGHT);
+	uint32_t * dst = config->base;
+	uint32_t * src;
+	uint32_t size, scanline;
 
-	while(count--) {
+	scanline = config->stride * config->pixel_size;
+	src = (uint32_t *)(config->base + config->con.sym_height * scanline);
+	size = (config->height - config->con.sym_height) * scanline;
+	size /= 4;
+
+	while (size--) {
 		*dst++ = *src++;
 	}
 
-	count = config->width * FONT_HEIGHT;
-	while(count--) {
-		*dst++ = BGCOLOR;
+	size = config->con.sym_height * scanline;
+	while (size--) {
+		*dst++ = 0;
 	}
 
 	fbcon_flush();
 }
 
-/* TODO: take stride into account */
 void fbcon_clear(void)
 {
-	unsigned count = config->width * config->height;
-	memset(config->base, BGCOLOR, count * ((config->bpp) / 8));
-}
-
-
-static void fbcon_set_colors(unsigned bg, unsigned fg)
-{
-	BGCOLOR = bg;
-	FGCOLOR = fg;
+	unsigned size = config->stride * config->height * config->pixel_size;
+	memset(config->base, 0, size);
 }
 
 void fbcon_putc(char c)
 {
-	uint8_t * pixels = NULL;
+	uint8_t * pixels = NULL;	
 	uint32_t offset;
+	uint8_t cc = (uint8_t)c;
 
 	/* ignore anything that happens before fbcon is initialized */
 	if (!config)
 		return;
 
-	if((unsigned char)c > 127)
-		return;
-	if((unsigned char)c < 32) {
-		if(c == '\n')
-			goto newline;
-		else if (c == '\r')
-			cur_pos.x = 0;
+	if (cc == '\n')
+		goto newline;
+
+	if (cc == '\r') {
+		config->con.cur.x = 0;
 		return;
 	}
 
-	offset = cur_pos.y * FONT_HEIGHT * config->stride;
-	offset += cur_pos.x * (FONT_WIDTH + 1);
-	pixels = config->base + offset * pixel_size;
-	fbcon_drawglyph(pixels, FGCOLOR, config->stride,
-			font5x12 + (c - 32) * 2);
+	offset = config->con.cur.y * config->con.sym_height * config->stride;
+	offset += config->con.cur.x * config->con.sym_width;
+	pixels = config->base + offset * config->pixel_size;
+	fbcon_drawglyph(pixels, config->con.fg_color, config->stride, c);
 
-	cur_pos.x++;
-	if (cur_pos.x < max_pos.x)
+	config->con.cur.x++;
+	if (config->con.cur.x < config->con.max.x)
 		return;
 
 newline:
-	cur_pos.y++;
-	cur_pos.x = 0;
-	if(cur_pos.y >= max_pos.y) {
-		cur_pos.y = max_pos.y - 1;
+	config->con.cur.y++;
+	config->con.cur.x = 0;
+	if (config->con.cur.y >= config->con.max.y) {
+		config->con.cur.y = config->con.max.y - 1;
 		fbcon_scroll_up();
-	} else
+	} else {
 		fbcon_flush();
+	}
+}
+
+void fbcon_print(char * str)
+{
+	while (*str) {
+		fbcon_putc(*str);
+		str++;
+	}
+}
+
+void fbcon_set_cursor_pos(unsigned x, unsigned y)
+{
+	if (x >= config->con.max.x) {
+		config->con.cur.x = config->con.max.x - 1;
+	} else {
+		config->con.cur.x = x;
+	}
+	if (y >= config->con.max.y) {
+		config->con.cur.y = config->con.max.y - 1;
+	} else {
+		config->con.cur.y = y;
+	}
+}
+
+void fbcon_optimize_font_bitmap(struct raster_font * font)
+{
+	unsigned gw, i, size;
+	uint8_t * bitmap;
+
+	if (!font->processed) {
+		gw = font->width / 8;
+		size = (font->last_char - font->first_char + 1) * gw * font->height;
+		bitmap = font->bitmap;
+		for (i = 0; i < size; i++) {
+			uint8_t x = bitmap[i];
+
+			// Classical implementation (can be extended to 16 and 32 bits)
+			// x = ((x & 0xF0) >> 4) | ((x & 0x0F) << 4);
+			// x = ((x & 0xCC) >> 2) | ((x & 0x33) << 2);
+			// x = ((x & 0xAA) >> 1) | ((x & 0x55) << 1);
+			// bitmap[i] = x;
+
+			// reverse bits on 32-bit systems (this is faster)
+			bitmap[i] = ((x * 0x0802LU & 0x22110LU) | (x * 0x8020LU & 0x88440LU)) * 0x10101LU >> 16;
+		}
+		font->processed = 1;
+	}
+}
+
+void fbcon_set_font_size(unsigned width, unsigned height)
+{
+	config->con.sym_width = width;
+	config->con.sym_height = height;
+	config->con.max.x = config->width / width;
+	config->con.max.y = (config->height - 1) / height;
+}
+
+void fbcon_set_font_fg_color(unsigned color)
+{
+	config->con.fg_color = color;
+}
+
+void fbcon_set_font_bg_color(unsigned color)
+{
+	config->con.bg_color = color;
+}
+
+void fbcon_set_font_color(unsigned fg, unsigned bg)
+{
+	fbcon_set_font_fg_color(fg);
+	fbcon_set_font_bg_color(bg);
+}
+
+void fbcon_set_font_type(struct raster_font * font)
+{
+	config->con.font = font;
+	fbcon_optimize_font_bitmap(font);
+	fbcon_set_font_size(font->width, font->height);
+	fbcon_set_font_color(COLOR_WHITE, COLOR_BLACK);
+	config->con.cur.x = 0;
+	config->con.cur.y = 0;
 }
 
 void fbcon_setup(struct fbcon_config *_config)
 {
 	ASSERT(_config);
-
 	config = _config;
 
 	switch (config->format) {
 	case FB_FORMAT_RGB565:
-		pixel_size = 2;
-		fbcon_set_colors(RGB565_BLACK, RGB565_WHITE);
+		config->pixel_size = 2;
 		break;
 	case FB_FORMAT_RGB888:
-		pixel_size = 3;
-		fbcon_set_colors(RGB888_BLACK, RGB888_WHITE);
+		config->pixel_size = 3;
 		break;
 	default:
 		dprintf(CRITICAL, "unknown framebuffer pixel format\n");
 		ASSERT(0);
 		break;
 	}
-
-	cur_pos.x = 0;
-	cur_pos.y = 0;
-	max_pos.x = config->width / (FONT_WIDTH+1);
-	max_pos.y = (config->height - 1) / FONT_HEIGHT;
-#if !DISPLAY_SPLASH_SCREEN
-	fbcon_clear();
-#endif
 }
 
-struct fbcon_config* fbcon_display(void)
+struct fbcon_config * fbcon_display(void)
 {
 	return config;
 }
 
+// -------------------------------------------------------------------------------
 
-extern struct fbimage* fetch_image_from_partition();
+extern struct fbimage * fetch_image_from_partition();
+
 void fbcon_putImage(struct fbimage *fbimg, bool flag);
 
 void display_image_on_screen()

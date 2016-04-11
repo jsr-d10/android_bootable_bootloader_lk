@@ -50,26 +50,64 @@ struct fbimage {
 	void *image;
 };
 
+struct raster_font {
+  unsigned width;
+  unsigned height;
+  const char * name;
+  unsigned char first_char;
+  unsigned char last_char;
+  unsigned char processed;
+  unsigned char * bitmap;
+};
+
+struct fb_pos {
+  int x;
+  int y;
+};
+
+struct fb_console {
+  struct raster_font * font;
+  unsigned sym_width;
+  unsigned sym_height;
+  unsigned fg_color;
+  unsigned bg_color;
+  struct fb_pos cur;
+  struct fb_pos max;
+};
+
+#define COLOR_BLACK      0x000000
+#define COLOR_WHITE      0xffffff
+
 #define FB_FORMAT_RGB565 0
 #define FB_FORMAT_RGB666 1
 #define FB_FORMAT_RGB666_LOOSE 2
 #define FB_FORMAT_RGB888 3
 
 struct fbcon_config {
-	void		*base;
+	void		* base;
 	unsigned	width;
 	unsigned	height;
 	unsigned	stride;
 	unsigned	bpp;
 	unsigned	format;
+	unsigned	pixel_size;
+	struct fb_console con;
 
 	void		(*update_start)(void);
 	int		(*update_done)(void);
 };
 
-void fbcon_setup(struct fbcon_config *cfg);
+void fbcon_setup(struct fbcon_config * cfg);
 void fbcon_putc(char c);
 void fbcon_clear(void);
-struct fbcon_config* fbcon_display(void);
+struct fbcon_config * fbcon_display(void);
+
+void fbcon_set_cursor_pos(unsigned x, unsigned y);
+void fbcon_set_font_size(unsigned width, unsigned height);
+void fbcon_set_font_fg_color(unsigned color);
+void fbcon_set_font_bg_color(unsigned color);
+void fbcon_set_font_color(unsigned fg, unsigned bg);
+void fbcon_set_font_type(struct raster_font * font);
+void fbcon_print(char * str);
 
 #endif /* __DEV_FBCON_H */
