@@ -110,4 +110,28 @@ void fbcon_set_font_color(unsigned fg, unsigned bg);
 void fbcon_set_font_type(struct raster_font * font);
 void fbcon_print(char * str);
 
+enum colors {
+	BLACK   = 0x000000,
+	GRAY    = 0x808080,
+	SILVER  = 0xC0C0C0,
+	WHITE   = 0xFFFFFF,
+	MAROON  = 0x800000,
+	RED     = 0xFF0000,
+	GREEN   = 0x008000,
+	LIME    = 0x00FF00,
+	NAVY    = 0x000080,
+	BLUE    = 0x0000FF,
+	OLIVE   = 0x808000,
+	YELLOW  = 0xFFFF00,
+	PURPLE  = 0x800080,
+	FUCHSIA = 0xFF00FF,
+	TEAL    = 0x008080,
+	AQUA    = 0x00FFFF,
+};
+
+#define DISPLAY_MAX_X_POS 28
+#define DISPLAY_MAX_Y_POS 22
+#define DISPLAY_HEADER_Y_POS 13
+
+
 #endif /* __DEV_FBCON_H */
