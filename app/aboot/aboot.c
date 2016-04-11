@@ -143,6 +143,7 @@ static char ffbm_mode_string[FFBM_MODE_BUF_SIZE];
 static bool boot_into_ffbm;
 static char target_boot_params[64];
 static bool boot_reason_alarm;
+static bool boot_into_fastboot = false;
 
 /* Assuming unauthorized kernel image by default */
 static int auth_kernel_img = 0;
@@ -2490,11 +2491,271 @@ void aboot_fastboot_register_commands(void)
 			(const char *) panel_display_mode);
 }
 
+enum item_types {
+	EMMC_BOOT = 0,
+	SD_BOOT,
+	RECOVERY,
+	FASTBOOT,
+	DLOAD_EMERGENCY,
+	DLOAD_NORMAL,
+	RESTART,
+	SHUTDOWN,
+	BOOT_MENU,
+	REBOOT_MENU,
+};
+
+struct menu_item {
+	uint32_t x_pos;
+	uint32_t y_pos;
+	uint32_t fg_color;
+	uint32_t bg_color;
+	uint32_t id;
+	enum item_types type;
+	char name[32+1];
+	struct menu_item *previous;
+	struct menu_item *next;
+};
+
+struct menu {
+	uint32_t x_pos;
+	uint32_t y_pos;
+	uint32_t fg_color;
+	uint32_t bg_color;
+	uint32_t cursor;
+	char name[32+1];
+	struct menu_item *item;
+};
+
+struct menu *
+create_menu(
+	uint32_t x_pos,
+	uint32_t y_pos,
+	uint32_t fg_color,
+	uint32_t cursor,
+	char *menu_name)
+{
+	struct menu *menu = (struct menu*) malloc(sizeof(struct menu));
+	if (!menu) {
+		dprintf(CRITICAL, "%s: Malloc failed!", __func__);
+		return(NULL);
+	}
+	menu->x_pos = x_pos;
+	menu->y_pos = y_pos;
+	menu->fg_color = fg_color;
+	menu->item = NULL;
+	strncpy(menu->name, menu_name, sizeof(menu->name)); // add 2 spaces before item_name - one for cursor and one for separator
+	return menu;
+}
+
+void destroy_menu(struct menu *menu) {
+	struct menu_item *current_item = menu->item;
+	struct menu_item *next = current_item->next;
+	do {
+		next = current_item->next;
+		fbcon_set_font_fg_color(BLACK);
+		fbcon_set_cursor_pos(current_item->x_pos, current_item->y_pos);
+		fbcon_putc(menu->cursor);
+		fbcon_set_cursor_pos(current_item->x_pos, current_item->y_pos);
+		fbcon_print(current_item->name);
+		free(current_item);
+		if (next == current_item) // If only one item was in that menu. Silly, but possible,
+			break;
+		current_item = next;
+	} while (current_item != menu->item && current_item->id != 0);
+
+	fbcon_set_cursor_pos(menu->x_pos, menu->y_pos);
+	fbcon_set_font_fg_color(BLACK);
+	fbcon_print(menu->name);
+	free(menu);
+}
+
+struct menu_item *add_menu_item(
+	struct menu *menu,
+	uint32_t x_pos,
+	uint32_t y_pos,
+	uint32_t fg_color,
+	char *name,
+	enum item_types type)
+{
+	struct menu_item *first_item=menu->item;
+	struct menu_item *new_item = (struct menu_item*) malloc(sizeof(struct menu_item));
+	if (!new_item) {
+		dprintf(CRITICAL, "%s: Malloc failed!\n", __func__);
+		return NULL;
+	}
+
+	new_item->x_pos = x_pos;
+	new_item->y_pos = y_pos;
+	new_item->fg_color = fg_color;
+	new_item->type = type;
+	snprintf(new_item->name, sizeof(new_item->name), "  %s", name); // add 2 spaces before name - one for cursor and one for separator
+	if (first_item != NULL) {
+		new_item->id = first_item->previous->id + 1;
+		first_item->previous->next = new_item;
+		new_item->next = first_item;
+		new_item->previous = first_item->previous;
+		first_item->previous = new_item;
+		return first_item;
+	} else {
+		new_item->id = 0;
+		new_item->previous = new_item;
+		new_item->next = new_item;
+		menu->item = new_item;
+		return new_item;
+	}
+
+}
+
+struct menu *boot_menu(void) {
+	struct menu *menu = NULL;
+	menu = create_menu (9, DISPLAY_HEADER_Y_POS, NAVY, '>', "Boot menu");
+	add_menu_item(menu, 1, 15, GREEN,  "BOOT from eMMC", EMMC_BOOT);
+	add_menu_item(menu, 1, 16, TEAL,   "BOOT from SD",   SD_BOOT);
+	add_menu_item(menu, 1, 17, BLUE,   "RECOVERY",       RECOVERY);
+	add_menu_item(menu, 1, 19, PURPLE, "REBOOT MENU =>", REBOOT_MENU);
+	return menu;
+}
+
+struct menu *reboot_menu(void) {
+	struct menu *menu = NULL;
+	menu = create_menu (9, DISPLAY_HEADER_Y_POS, PURPLE, '>', "Reboot menu");
+	add_menu_item(menu, 1, 15, NAVY,    "BACK TO BOOT MENU =>", BOOT_MENU);
+	add_menu_item(menu, 1, 16, RED,     "RESTART",        RESTART);
+	add_menu_item(menu, 1, 17, YELLOW,  "FASTBOOT",       FASTBOOT);
+	add_menu_item(menu, 1, 18, FUCHSIA, "SHUTDOWN",       SHUTDOWN);
+	add_menu_item(menu, 1, 19, SILVER,  "NORMAL    DLOAD (9006)", DLOAD_NORMAL);
+	add_menu_item(menu, 1, 20, GRAY,    "EMERGENCY DLOAD (9008)", DLOAD_EMERGENCY);
+	return menu;
+}
+
+void show_menu(struct menu *menu) {
+	struct menu_item *item = menu->item;
+	int iter=0;
+
+	fbcon_set_cursor_pos(8, DISPLAY_HEADER_Y_POS);
+	fbcon_set_font_fg_color(BLACK);
+	fbcon_print("Starting aboot\n");
+
+	fbcon_set_cursor_pos(menu->x_pos, menu->y_pos);
+	fbcon_set_font_fg_color(menu->fg_color);
+	fbcon_print(menu->name);
+
+	while (1) {
+		dprintf(SPEW, "%s: iter %d, name %s, id %d, cur=%p, next=%p\n",
+			__func__, iter++, item->name, item->id, item, item->next);
+		fbcon_set_cursor_pos(item->x_pos, item->y_pos);
+		fbcon_set_font_fg_color(item->fg_color);
+		fbcon_print(item->name);
+		if ((item->next->id < item->id) || (item->next == item))
+			break;
+		item=item->next;
+	}
+}
+
+void move_cursor(struct menu_item *old, struct menu_item *new, uint32_t color, uint32_t cursor) {
+	fbcon_set_cursor_pos(old->x_pos, old->y_pos);
+	fbcon_set_font_fg_color(BLACK);
+	fbcon_putc(cursor);
+	fbcon_set_cursor_pos(new->x_pos, new->y_pos);
+	fbcon_set_font_fg_color(color);
+	fbcon_putc(cursor);
+}
+
+int process_menu(struct menu *menu) {
+	struct menu_item *selected = menu->item;
+	move_cursor(selected, selected, LIME, menu->cursor);
+	while (1) {
+		target_keystatus();
+		if (keys_get_state(KEY_VOLUMEUP)) {
+			dprintf(SPEW, "KEY_VOLUMEUP\n");
+			vib_timed_turn_on(100);
+			move_cursor(selected, selected->previous, LIME, menu->cursor);
+			selected=selected->previous;
+			thread_sleep(300);
+			continue;
+		}
+		if (keys_get_state(KEY_VOLUMEDOWN)) {
+			dprintf(SPEW, "KEY_VOLUMEDOWN\n");
+			vib_timed_turn_on(100);
+			move_cursor(selected, selected->next, LIME, menu->cursor);
+			selected=selected->next;
+			thread_sleep(300);
+			continue;
+		}
+		if (keys_get_state(KEY_POWER)) {
+			dprintf(SPEW, "KEY_POWER\n");
+			vib_timed_turn_on(400);
+			move_cursor(selected, selected, RED, menu->cursor);
+			break;
+		}
+		thread_sleep(20);
+	}
+	return selected->type;
+}
+
+void draw_menu(struct menu *menu_function(void), int delay);
+void handle_menu_selection(uint32_t selection, struct menu *menu) {
+	dprintf(SPEW, "%s: processing selection=%d\n", __func__, selection);
+	switch (selection) {
+		case EMMC_BOOT:
+			break;
+		case SD_BOOT:
+			break;
+		case RECOVERY:
+			boot_into_fastboot = false;
+			boot_into_recovery = 1;
+			break;
+		case REBOOT_MENU:
+			destroy_menu(menu);
+			draw_menu(reboot_menu, 500);
+			break;
+		case BOOT_MENU:
+			destroy_menu(menu);
+			draw_menu(boot_menu, 500);
+			break;
+		case FASTBOOT:
+			reboot_device(FASTBOOT_MODE);
+			break;
+		case DLOAD_EMERGENCY:
+			set_download_mode(EMERGENCY_DLOAD);
+			reboot_device(DLOAD);
+			break;
+		case DLOAD_NORMAL:
+			platform_halt();
+			break;
+		case RESTART:
+			reboot_device(0);
+			break;
+		case SHUTDOWN:
+			shutdown_device();
+			break;
+		default:
+			break;
+	}
+}
+
+void draw_menu(struct menu *menu_function(void), int delay) {
+	struct menu *menu = menu_function();
+	show_menu(menu);
+	thread_sleep(delay);
+	uint32_t selection = process_menu(menu);
+
+	// Hide menu title after selection
+	fbcon_set_cursor_pos(menu->x_pos, menu->y_pos);
+	fbcon_set_font_fg_color(BLACK);
+	fbcon_print(menu->name);
+
+	handle_menu_selection(selection, menu);
+}
+
+void main_menu(void) {
+	draw_menu(boot_menu, 0);
+}
+
 void aboot_init(const struct app_descriptor *app)
 {
 	unsigned reboot_mode = 0;
 	unsigned hard_reboot_mode = 0;
-	bool boot_into_fastboot = false;
 
 	/* Setup page size information for nv storage */
 	if (target_is_emmc_boot())
@@ -2557,6 +2818,10 @@ void aboot_init(const struct app_descriptor *app)
 		if (!boot_into_recovery &&
 			(keys_get_state(KEY_BACK) || keys_get_state(KEY_VOLUMEDOWN)))
 			boot_into_fastboot = true;
+	}
+	if (keys_get_state(KEY_FUNCTION)) {
+		dprintf(CRITICAL,"Boot menu key sequence detected\n");
+		main_menu();
 	}
 	#if NO_KEYPAD_DRIVER
 	if (fastboot_trigger())
