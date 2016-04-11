@@ -48,7 +48,7 @@ static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, c
 	stride -= config->con.sym_width;
 	stride *= config->pixel_size;
 
-	gw = config->con.font->width / 8;
+	gw = (config->con.font->width / 8) + 1;
 	cc = (uint8_t)c;
 	if (cc < config->con.font->first_char) cc = '?';
 	if (cc > config->con.font->last_char)  cc = '?';
@@ -142,6 +142,8 @@ void fbcon_putc(char c)
 	/* ignore anything that happens before fbcon is initialized */
 	if (!config)
 		return;
+	if (!config->con.font)
+		return;
 
 	if (cc == '\n')
 		goto newline;
@@ -199,8 +201,9 @@ void fbcon_optimize_font_bitmap(struct raster_font * font)
 	uint8_t * bitmap;
 
 	if (!font->processed) {
-		gw = font->width / 8;
-		size = (font->last_char - font->first_char + 1) * gw * font->height;
+		gw = (font->width / 8) + 1;
+		size = font->last_char - font->first_char + 1;
+		size = gw * font->height * size;
 		bitmap = font->bitmap;
 		for (i = 0; i < size; i++) {
 			uint8_t x = bitmap[i];
@@ -244,12 +247,14 @@ void fbcon_set_font_color(unsigned fg, unsigned bg)
 
 void fbcon_set_font_type(struct raster_font * font)
 {
-	config->con.font = font;
-	fbcon_optimize_font_bitmap(font);
-	fbcon_set_font_size(font->width, font->height);
-	fbcon_set_font_color(COLOR_WHITE, COLOR_BLACK);
-	config->con.cur.x = 0;
-	config->con.cur.y = 0;
+	if (font) {
+		config->con.font = font;
+		fbcon_optimize_font_bitmap(font);
+		fbcon_set_font_size(font->width, font->height);
+		fbcon_set_font_color(COLOR_WHITE, COLOR_BLACK);
+		config->con.cur.x = 0;
+		config->con.cur.y = 0;
+	}
 }
 
 void fbcon_setup(struct fbcon_config *_config)
