@@ -185,7 +185,7 @@ uint32_t target_power_pressed()
         return pm8x41_get_pwrkey_is_pressed();
 }
 
-static void target_keystatus()
+void target_keystatus()
 {
 	keys_init();
 

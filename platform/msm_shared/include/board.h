@@ -68,6 +68,7 @@ uint32_t board_get_ddr_subtype(void);
 uint32_t board_hlos_subtype(void);
 uint32_t board_pmic_target(uint8_t num_ent);
 
+void target_keystatus();
 /* DDR Subtype Macros
  * Determine the DDR Size on the device and define
  * the below subtype enums based on the DDR size.
