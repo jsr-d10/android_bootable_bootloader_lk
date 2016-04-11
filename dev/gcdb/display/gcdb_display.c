@@ -308,7 +308,17 @@ int gcdb_display_init(const char *panel_name, uint32_t rev, void *base)
 	panel.fb.height =  panel.panel_info.yres;
 	panel.fb.stride =  panel.panel_info.xres;
 	panel.fb.bpp =  panel.panel_info.bpp;
-	panel.fb.format = panel.panel_info.mipi.dst_format;
+	panel.fb.format = FB_FORMAT_RGB888;
+	switch (panel.panel_info.mipi.dst_format) {
+	case DSI_VIDEO_DST_FORMAT_RGB565:
+		panel.fb.format = FB_FORMAT_RGB565;
+	case DSI_VIDEO_DST_FORMAT_RGB666_LOOSE:
+		panel.fb.format = FB_FORMAT_RGB666_LOOSE;
+	case DSI_VIDEO_DST_FORMAT_RGB666:
+		panel.fb.format = FB_FORMAT_RGB666;
+	case DSI_VIDEO_DST_FORMAT_RGB888:
+		panel.fb.format = FB_FORMAT_RGB888;
+	}
 	panel.mdp_rev = rev;
 
 	ret = msm_display_init(&panel);
