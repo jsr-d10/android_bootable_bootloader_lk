@@ -41,8 +41,8 @@
 #include <partition_parser.h>
 #include <mmc.h>
 
-#include "recovery.h"
-#include "bootimg.h"
+#include <app/aboot/recovery.h>
+#include <app/aboot/bootimg.h>
 #include "smem.h"
 
 #define BOOT_FLAGS	1

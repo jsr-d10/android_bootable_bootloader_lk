@@ -37,7 +37,7 @@
 #include <kernel/event.h>
 #include <dev/fbcon.h>
 #include <dev/udc.h>
-#include "fastboot.h"
+#include <app/aboot/fastboot.h>
 
 #ifdef USB30_SUPPORT
 #include <usb30_udc.h>

@@ -35,16 +35,16 @@
 #endif // __MMC_H
 
 #ifndef __RECOVERY_H
-#include "recovery.h"
+#include <app/aboot/recovery.h>
 #endif // __RECOVERY_H
 
 #ifndef __FASTBOOT_H
-#include "fastboot.h"
+#include <app/aboot/fastboot.h>
 #endif // __FASTBOOT_H
 
 
 #ifndef __DEVINFO_H
-#include "devinfo.h"
+#include <app/aboot/devinfo.h>
 #endif // __DEVINFO_H
 
 #ifndef __PARTITION_PARSER_H

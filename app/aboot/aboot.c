@@ -60,16 +60,17 @@
 #include <dev_tree.h>
 #endif
 
+#include <app/aboot/fastboot.h>
+#include <app/aboot/aboot.h>
+#include <app/aboot/devinfo.h>
+#include <app/aboot/recovery.h>
+#include <app/aboot/bootimg.h>
+#include <app/aboot/sparse_format.h>
+
 #include "image_verify.h"
-#include "recovery.h"
-#include "bootimg.h"
-#include "fastboot.h"
-#include "sparse_format.h"
 #include "mmc.h"
-#include "devinfo.h"
 #include "board.h"
 #include "scm.h"
-#include "aboot.h"
 
 static unsigned page_size = 0;
 static unsigned page_mask = 0;
