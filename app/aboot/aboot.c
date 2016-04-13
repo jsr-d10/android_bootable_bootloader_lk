@@ -43,6 +43,7 @@
 #include <lib/ptable.h>
 #include <dev/keys.h>
 #include <dev/fbcon.h>
+#include <dev/font/font-25x57.h>
 #include <baseband.h>
 #include <target.h>
 #include <mmc.h>
@@ -990,6 +991,11 @@ int boot_linux_from_mmc(void)
 		target_load_ssd_keystore();
 
 unified_boot:
+	if (boot_into_recovery) {
+		fbcon_hprint("Recovery mode\n", BLUE);
+	} else {
+		fbcon_hprint("Normal boot\n", LIME);
+	}
 
 	boot_linux((void *)hdr->kernel_addr, (void *)hdr->tags_addr,
 		   (const char *)hdr->cmdline, board_machtype(),
@@ -1608,6 +1614,7 @@ void cmd_boot(const char *arg, void *data, unsigned sz)
 	}
 #endif
 
+	fbcon_hprint("Fastboot boot\n", OLIVE);
 	fastboot_okay("");
 	fastboot_stop();
 
@@ -1648,6 +1655,7 @@ void cmd_erase_mmc(const char *arg, void *data, unsigned sz)
 	unsigned long long size = 0;
 	int index = INVALID_PTN;
 	uint8_t lun = 0;
+	fbcon_hprint("Fastboot erase\n", RED);
 
 	index = partition_get_index(arg);
 	ptn = partition_get_offset(index);
@@ -1678,12 +1686,14 @@ void cmd_erase_mmc(const char *arg, void *data, unsigned sz)
 		return;
 	}
 #endif
+	fbcon_hprint("Fastboot mode\n", YELLOW);
 	fastboot_okay("");
 }
 
 
 void cmd_flash_mmc_img(const char *arg, void *data, unsigned sz)
 {
+	fbcon_hprint("Fastboot flash\n", MAROON);
 	unsigned long long ptn = 0;
 	unsigned long long size = 0;
 	int index = INVALID_PTN;
@@ -1743,6 +1753,7 @@ void cmd_flash_mmc_img(const char *arg, void *data, unsigned sz)
 		}
 	}
 	fastboot_okay("");
+	fbcon_hprint("Fastboot mode\n", YELLOW);
 	return;
 }
 
@@ -2407,6 +2418,8 @@ void aboot_init(const struct app_descriptor *app)
 #if DISPLAY_SPLASH_SCREEN
 	dprintf(SPEW, "Display Init: Start\n");
 	target_display_init(device.display_panel);
+	fbcon_set_font_type(&font_25x57);
+	fbcon_hprint("Starting aboot\n", WHITE);
 	dprintf(SPEW, "Display Init: Done\n");
 #endif
 
@@ -2504,6 +2517,7 @@ normal_boot:
 
 	/* dump partition table for debug info */
 //	partition_dump();
+	fbcon_hprint("Fastboot mode\n", OLIVE);
 
 	/* initialize and start fastboot */
 	fastboot_init(target_get_scratch_address(), target_get_max_flash_size());

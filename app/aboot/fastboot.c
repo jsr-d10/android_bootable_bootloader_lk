@@ -35,6 +35,7 @@
 #include <target.h>
 #include <kernel/thread.h>
 #include <kernel/event.h>
+#include <dev/fbcon.h>
 #include <dev/udc.h>
 #include "fastboot.h"
 
@@ -432,6 +433,7 @@ static void fastboot_command_loop(void)
 {
 	struct fastboot_cmd *cmd;
 	int r;
+	fbcon_hprint("Fastboot mode", YELLOW);
 	dprintf(INFO,"fastboot: processing commands\n");
 
 	uint8_t *buffer = (uint8_t *)memalign(CACHE_LINE, ROUNDUP(4096, CACHE_LINE));
@@ -472,6 +474,7 @@ again:
 	}
 	fastboot_state = STATE_OFFLINE;
 	dprintf(INFO,"fastboot: oops!\n");
+	fbcon_hprint("Fastboot mode", OLIVE);
 	free(buffer);
 }
 
