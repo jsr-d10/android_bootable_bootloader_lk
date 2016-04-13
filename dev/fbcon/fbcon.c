@@ -260,9 +260,19 @@ void fbcon_set_font_size(unsigned width, unsigned height)
 	config->con.max.y = (config->height - 1) / height;
 }
 
+unsigned fbcon_get_font_fg_color(void)
+{
+	return config->con.fg_color;
+}
+
 void fbcon_set_font_fg_color(unsigned color)
 {
 	config->con.fg_color = color;
+}
+
+unsigned fbcon_get_font_bg_color(void)
+{
+	return config->con.bg_color;
 }
 
 void fbcon_set_font_bg_color(unsigned color)

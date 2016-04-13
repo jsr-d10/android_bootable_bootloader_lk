@@ -104,6 +104,8 @@ struct fbcon_config * fbcon_display(void);
 
 void fbcon_set_cursor_pos(unsigned x, unsigned y);
 void fbcon_set_font_size(unsigned width, unsigned height);
+unsigned fbcon_get_font_fg_color(void);
+unsigned fbcon_get_font_bg_color(void);
 void fbcon_set_font_fg_color(unsigned color);
 void fbcon_set_font_bg_color(unsigned color);
 void fbcon_set_font_color(unsigned fg, unsigned bg);
