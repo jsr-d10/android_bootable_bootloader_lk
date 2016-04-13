@@ -37,6 +37,7 @@
 #include <string.h>
 
 static struct fbcon_config * config = NULL;
+uint8_t header_line = 13; // for 25x57 font, under Tux logo
 
 static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, char c)
 {
@@ -191,6 +192,55 @@ void fbcon_print(char * str)
 		fbcon_putc(*str);
 		str++;
 	}
+}
+
+void fbcon_cprint(char * str, unsigned color)
+{
+	unsigned prev_fg_color = fbcon_get_font_fg_color();
+	fbcon_set_font_fg_color(color);
+	fbcon_print(str);
+	fbcon_set_font_fg_color(prev_fg_color);
+}
+
+void fbcon_aprint(char * str, int line, int align)
+{
+	int position = 0;
+	switch (align) {
+		case ALIGN_LEFT:
+			fbcon_set_cursor_pos(position, line);
+			fbcon_print(str);
+			break;
+		case ALIGN_CENTER:
+			position = (config->con.max.x - strlen(str)) / 2 + 1; // +1 is for \0 at end of string
+			fbcon_set_cursor_pos(position, line);
+			fbcon_print(str);
+			break;
+		case ALIGN_RIGHT:
+			position = config->con.max.x - strlen(str);
+			fbcon_set_cursor_pos(position, line);
+			fbcon_print(str);
+			break;
+		default:
+			dprintf(CRITICAL, "%s: wrong alignment passed: %d", __func__, align);
+			fbcon_print(str);
+			break;
+	}
+}
+
+void fbcon_acprint(char * str, int line, int align, unsigned color)
+{
+	unsigned prev_fg_color = fbcon_get_font_fg_color();
+	fbcon_set_font_fg_color(color);
+	fbcon_aprint(str, line, align);
+	fbcon_set_font_fg_color(prev_fg_color);
+}
+
+void fbcon_hprint(char * header, unsigned color)
+{
+	static char previous_header[145] = { 0 }; // for tiny 5x12 font
+	fbcon_acprint(previous_header, header_line, ALIGN_CENTER, BLACK);
+	fbcon_acprint(header, header_line, ALIGN_CENTER, color);
+	strncpy(previous_header, header, sizeof(previous_header));
 }
 
 void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h)

@@ -111,6 +111,16 @@ void fbcon_set_font_bg_color(unsigned color);
 void fbcon_set_font_color(unsigned fg, unsigned bg);
 void fbcon_set_font_type(struct raster_font * font);
 void fbcon_print(char * str);
+void fbcon_cprint(char * str, unsigned color);
+void fbcon_aprint(char * str, int line, int align);
+void fbcon_acprint(char * str, int line, int align, unsigned color);
+void fbcon_hprint(char * header, unsigned color);
+
+enum align {
+	ALIGN_LEFT = 0,
+	ALIGN_CENTER,
+	ALIGN_RIGHT
+};
 
 enum colors {
 	BLACK   = 0x000000,
@@ -131,9 +141,6 @@ enum colors {
 	AQUA    = 0x00FFFF,
 };
 
-#define DISPLAY_MAX_X_POS 28
-#define DISPLAY_MAX_Y_POS 22
-#define DISPLAY_HEADER_Y_POS 13
-
+extern uint8_t header_line;
 
 #endif /* __DEV_FBCON_H */
