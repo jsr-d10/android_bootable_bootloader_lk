@@ -76,6 +76,7 @@ static unsigned page_size = 0;
 static unsigned page_mask = 0;
 static char ffbm_mode_string[FFBM_MODE_BUF_SIZE];
 static bool boot_into_ffbm;
+bool boot_into_fastboot = false;
 static char target_boot_params[64];
 static bool boot_reason_alarm;
 
@@ -2397,7 +2398,6 @@ void aboot_init(const struct app_descriptor *app)
 {
 	unsigned reboot_mode = 0;
 	unsigned hard_reboot_mode = 0;
-	bool boot_into_fastboot = false;
 
 	/* Setup page size information for nv storage */
 	if (target_is_emmc_boot())

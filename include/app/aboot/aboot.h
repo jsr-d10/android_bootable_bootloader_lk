@@ -147,4 +147,6 @@ extern int fastboot_trigger(void);
 
 typedef void entry_func_ptr(unsigned, unsigned, unsigned*);
 
+extern bool boot_into_fastboot;
+
 #endif // __ABOOT_H
