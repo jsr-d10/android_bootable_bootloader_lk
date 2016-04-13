@@ -47,6 +47,7 @@
 #include <baseband.h>
 #include <target.h>
 #include <mmc.h>
+#include <sdhci_msm.h>
 #include <partition_parser.h>
 #include <platform.h>
 #include <crypto_hash.h>
@@ -2423,7 +2424,23 @@ void aboot_init(const struct app_descriptor *app)
 	fbcon_hprint("Starting aboot\n", WHITE);
 	dprintf(SPEW, "Display Init: Done\n");
 #endif
+	char emmc_state[32] = "eMMC\n";
+	if (emmc_retries)
+		snprintf(emmc_state, sizeof(emmc_state), "[%d] eMMC\n", emmc_retries);
 
+	switch (emmc_health) {
+		case EMMC_GOOD:
+			fbcon_acprint(emmc_state, 0, ALIGN_RIGHT, GREEN);
+			break;
+		case EMMC_BAD:
+			fbcon_acprint(emmc_state, 0, ALIGN_RIGHT, YELLOW);
+			break;
+		case EMMC_FAILURE:
+			fbcon_acprint(emmc_state, 0, ALIGN_RIGHT, RED);
+			break;
+		default:
+			break;
+	}
 
 	target_serialno((unsigned char *) sn_buf);
 	dprintf(SPEW,"serial number: %s\n",sn_buf);

@@ -118,4 +118,15 @@ uint32_t sdhci_msm_execute_tuning(struct sdhci_host *host, uint32_t bus_width);
 void sdhci_mode_disable(struct sdhci_host *host);
 /* API: Toggle the bit for clock-data recovery */
 void sdhci_msm_toggle_cdr(struct sdhci_host *host, bool enable);
+
+/* eMMC health */
+enum emmc_states
+{
+	EMMC_GOOD = 0,
+	EMMC_BAD,
+	EMMC_FAILURE
+};
+extern int emmc_health;
+extern int emmc_retries;
+
 #endif

@@ -39,6 +39,8 @@
 
 extern void clock_init_mmc(uint32_t);
 extern void clock_config_mmc(uint32_t, uint32_t);
+int emmc_retries = 0;
+int emmc_health = EMMC_GOOD;
 
 /* data access time unit in ns */
 static const uint32_t taac_unit[] =
@@ -351,7 +353,7 @@ static uint8_t mmc_reset_card(struct sdhci_host *host)
  * Return  : 0 on Success, 1 on Failure
  * Flow    : Send CMD1 to know whether the card supports host VDD profile or not.
  */
-static uint32_t mmc_send_op_cond(struct sdhci_host *host, struct mmc_card *card)
+static uint32_t mmc_send_op_cond(struct sdhci_host *host, struct mmc_card *card, int slot)
 {
 	struct mmc_command cmd;
 	uint32_t mmc_resp = 0;
@@ -391,6 +393,13 @@ static uint32_t mmc_send_op_cond(struct sdhci_host *host, struct mmc_card *card)
 		} else
 			break;
 	} while (mmc_retry < MMC_MAX_COMMAND_RETRY);
+	if (slot == 1) {
+		emmc_retries = mmc_retry;
+		if (emmc_retries && (mmc_retry < MMC_MAX_COMMAND_RETRY))
+			emmc_health = EMMC_BAD;
+		else
+			emmc_health = EMMC_FAILURE;
+	}
 
 	/* If we reached here after max retries, we failed to get OCR */
 	if (mmc_retry == MMC_MAX_COMMAND_RETRY && !(mmc_resp & MMC_OCR_BUSY)) {
@@ -1124,7 +1133,7 @@ static uint32_t mmc_identify_card(struct sdhci_host *host, struct mmc_card *card
  * Flow    : Routine to initialize MMC card. It resets a card to idle state,
  *           verify operating voltage and set the card in ready state.
  */
-static uint32_t mmc_reset_card_and_send_op(struct sdhci_host *host, struct mmc_card *card)
+static uint32_t mmc_reset_card_and_send_op(struct sdhci_host *host, struct mmc_card *card, int slot)
 {
 	uint32_t mmc_return = 0;
 
@@ -1142,7 +1151,7 @@ static uint32_t mmc_reset_card_and_send_op(struct sdhci_host *host, struct mmc_c
 	 * profile. Cards sends its OCR register in response.
 	 */
 
-	mmc_return = mmc_send_op_cond(host, card);
+	mmc_return = mmc_send_op_cond(host, card, slot);
 
 	/* OCR is not received, init could not complete */
 	if (mmc_return) {
@@ -1420,6 +1429,7 @@ static uint32_t mmc_card_init(struct mmc_device *dev)
 	uint32_t mmc_return = 0;
 	uint32_t status;
 	uint8_t bus_width = 0;
+	int32_t retries = 0;
 
 	struct sdhci_host *host;
 	struct mmc_card *card;
@@ -1436,7 +1446,7 @@ static uint32_t mmc_card_init(struct mmc_device *dev)
 	card->ocr = MMC_OCR_27_36 | MMC_OCR_SEC_MODE;
 
 	/* Initialize the internal MMC */
-	mmc_return = mmc_reset_card_and_send_op(host, card);
+	mmc_return = mmc_reset_card_and_send_op(host, card, cfg->slot);
 	if (mmc_return)
 	{
 		dprintf(CRITICAL, "MMC card failed to respond, try for SD card\n");
