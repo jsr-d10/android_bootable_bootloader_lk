@@ -43,7 +43,6 @@
 #include <lib/ptable.h>
 #include <dev/keys.h>
 #include <dev/fbcon.h>
-#include <dev/font/font-25x57.h>
 #include <baseband.h>
 #include <target.h>
 #include <mmc.h>
@@ -1084,21 +1083,6 @@ int boot_linux_from_mmc(void)
 		target_load_ssd_keystore();
 
 unified_boot:
-	if (boot_into_recovery) {
-		fbcon_set_cursor_pos(8, DISPLAY_HEADER_Y_POS);
-		fbcon_set_font_fg_color(BLACK);
-		fbcon_print("Starting aboot\n");
-		fbcon_set_cursor_pos(8, DISPLAY_HEADER_Y_POS);
-		fbcon_set_font_fg_color(BLUE);
-		fbcon_print("Recovery mode\n");
-	} else {
-		fbcon_set_cursor_pos(8, DISPLAY_HEADER_Y_POS);
-		fbcon_set_font_fg_color(BLACK);
-		fbcon_print("Starting aboot\n");
-		fbcon_set_cursor_pos(9, DISPLAY_HEADER_Y_POS);
-		fbcon_set_font_fg_color(LIME);
-		fbcon_print("Normal boot\n");
-	}
 
 	boot_linux((void *)hdr->kernel_addr, (void *)hdr->tags_addr,
 		   (const char *)hdr->cmdline, board_machtype(),
@@ -2517,9 +2501,6 @@ void aboot_init(const struct app_descriptor *app)
 	dprintf(SPEW, "Display Init: Start\n");
 	target_display_init(device.display_panel);
 	dprintf(SPEW, "Display Init: Done\n");
-	fbcon_set_font_type(&font_25x57);
-	fbcon_set_cursor_pos(8, DISPLAY_HEADER_Y_POS);
-	fbcon_print("Starting aboot\n");
 #endif
 
 
@@ -2616,13 +2597,6 @@ normal_boot:
 
 	/* dump partition table for debug info */
 //	partition_dump();
-	fbcon_set_font_type(&font_25x57);
-	fbcon_set_cursor_pos(8, DISPLAY_HEADER_Y_POS);
-	fbcon_set_font_fg_color(BLACK);
-	fbcon_print("Starting aboot\n");
-	fbcon_set_cursor_pos(8, DISPLAY_HEADER_Y_POS);
-	fbcon_set_font_fg_color(YELLOW);
-	fbcon_print("Fastboot mode\n");
 
 	/* initialize and start fastboot */
 	fastboot_init(target_get_scratch_address(), target_get_max_flash_size());
