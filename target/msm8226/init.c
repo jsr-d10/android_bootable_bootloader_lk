@@ -201,6 +201,11 @@ void target_keystatus()
 
         if(target_power_pressed())
 		keys_post_event(KEY_POWER, 1);
+
+	// Enter 9006 mode on demand as early as possible
+	if (keys_get_state(KEY_FUNCTION) && keys_get_state(KEY_VOLUMEDOWN))
+		platform_halt();
+
 }
 
 /* Set up params for h/w CRYPTO_ENGINE. */
