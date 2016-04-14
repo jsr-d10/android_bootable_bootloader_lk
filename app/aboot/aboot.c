@@ -68,6 +68,7 @@
 #include <app/aboot/bootimg.h>
 #include <app/aboot/sparse_format.h>
 #include <app/aboot/menu.h>
+#include <pm8x41_adc.h>
 
 #include "image_verify.h"
 #include "mmc.h"
@@ -86,7 +87,7 @@ static bool boot_reason_alarm;
 /* Assuming unauthorized kernel image by default */
 static int auth_kernel_img = 0;
 
-static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}};
+static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}, 0};
 
 /*
  * Right now, we are publishing the info for only
@@ -1342,6 +1343,7 @@ void read_device_info_mmc(device_info *dev)
 		info->is_unlocked = 0;
 		info->is_tampered = 0;
 		info->charger_screen_enabled = 1;
+		info->charging_enabled = 0;
 
 		write_device_info_mmc(info);
 	}
@@ -2118,6 +2120,26 @@ void cmd_oem_disable_charger_screen(const char *arg, void *data, unsigned size)
 	fastboot_okay("");
 }
 
+void cmd_oem_enable_charging(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Enabling charging check\n");
+	device.charging_enabled = 1;
+	write_device_info(&device);
+	pm8x41_iusb_max_config(IUSB_MAX_UA);
+	pm8x41_chgr_ctl_enable(TRUE);
+	fastboot_okay("");
+}
+
+void cmd_oem_disable_charging(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Disabling charging check\n");
+	device.charging_enabled = 0;
+	write_device_info(&device);
+	pm8x41_iusb_max_config(IUSB_MIN_UA);
+	pm8x41_chgr_ctl_enable(FALSE);
+	fastboot_okay("");
+}
+
 void cmd_oem_select_display_panel(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Selecting display panel %s\n", arg);
@@ -2146,6 +2168,8 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	snprintf(response, sizeof(response), "\tDevice unlocked: %s", (device.is_unlocked ? "true" : "false"));
 	fastboot_info(response);
 	snprintf(response, sizeof(response), "\tCharger screen enabled: %s", (device.charger_screen_enabled ? "true" : "false"));
+	fastboot_info(response);
+	snprintf(response, sizeof(response), "\tCharging in bootloader enabled: %s", (device.charging_enabled ? "true" : "false"));
 	fastboot_info(response);
 	snprintf(response, sizeof(response), "\tDisplay panel: %s", (device.display_panel));
 	fastboot_info(response);
@@ -2376,6 +2400,10 @@ void aboot_fastboot_register_commands(void)
 			cmd_oem_enable_charger_screen);
 	fastboot_register("oem disable-charger-screen",
 			cmd_oem_disable_charger_screen);
+	fastboot_register("oem enable-charging",
+			cmd_oem_enable_charging);
+	fastboot_register("oem disable-charging",
+			cmd_oem_disable_charging);
 	fastboot_register("oem select-display-panel",
 			cmd_oem_select_display_panel);
 	/* publish variables and their values */
@@ -2439,6 +2467,10 @@ void aboot_init(const struct app_descriptor *app)
 	fbcon_hprint("Starting aboot\n", WHITE);
 	dprintf(SPEW, "Display Init: Done\n");
 #endif
+	if(device.charging_enabled) {
+		pm8x41_iusb_max_config(IUSB_MAX_UA);
+		pm8x41_chgr_ctl_enable(TRUE);
+	}
 	char emmc_state[32] = "eMMC\n";
 	if (emmc_retries)
 		snprintf(emmc_state, sizeof(emmc_state), "[%d] eMMC\n", emmc_retries);
