@@ -35,6 +35,7 @@
 #include <dload_util.h>
 #include <uart_dm.h>
 #include <mmc_sdhci.h>
+#include <sdhci_msm.h>
 #include <platform/clock.h>
 #include <platform/gpio.h>
 #include <spmi.h>
@@ -229,45 +230,92 @@ void target_crypto_init_params()
 	crypto_init_params(&ce_params);
 }
 
-void target_sdc_init()
-{
-	struct mmc_config_data config = {0};
+int target_check_for_partition(char *name) {
+	int index = partition_get_index(name);
+	int ptn = partition_get_offset(index);
+	if(ptn == 0) {
+		dprintf(CRITICAL, "ERROR: No %s partition found\n", name);
+		return FALSE;
+	}
+	return TRUE;
+}
 
+int target_check_card_for_requied_partitions(void)
+{
+	if(!target_check_for_partition("fsg")) return FALSE;
+	if(!target_check_for_partition("sdi")) return FALSE;
+	if(!target_check_for_partition("modemst1")) return FALSE;
+	if(!target_check_for_partition("modemst2")) return FALSE;
+	if(!target_check_for_partition("misc")) return FALSE;
+	if(!target_check_for_partition("fsc")) return FALSE;
+	if(!target_check_for_partition("modem")) return FALSE;
+	if(!target_check_for_partition("boot")) return FALSE;
+	if(!target_check_for_partition("persist")) return FALSE;
+	if(!target_check_for_partition("recovery")) return FALSE;
+	if(!target_check_for_partition("system")) return FALSE;
+	if(!target_check_for_partition("cache")) return FALSE;
+        if(!target_check_for_partition("userdata")) return FALSE;
+	return TRUE;
+}
+
+int target_sdc_init_slot(int slot)
+{
+	static struct mmc_config_data config = {0};
+	struct mmc_device *initialized_dev = NULL;
+	dprintf(CRITICAL, "%s: slot %d\n", __func__, slot);
+
+	config.bus_width = DATA_BUS_WIDTH_8BIT;
+	config.max_clk_rate = MMC_CLK_200MHZ;
+
+	config.slot = slot;
+	config.sdhc_base = mmc_sdhci_base[config.slot - 1];
+	config.pwrctl_base = mmc_pwrctl_base[config.slot - 1];
+	config.pwr_irq     = mmc_sdc_pwrctl_irq[config.slot - 1];
+	config.hs400_support = 0;
+	initialized_dev = mmc_init(&config);
+	if (initialized_dev) {
+		mmc_put_card_to_sleep(dev);
+		dev = initialized_dev;
+		/*
+		* MMC initialization is complete, read the partition table info
+		*/
+		if (partition_read_table()) {
+			dprintf(CRITICAL, "Error reading the partition table info from card in slot %d\n", slot);
+			mmc_put_card_to_sleep(initialized_dev);
+			return FALSE;
+		}
+		if (!target_check_card_for_requied_partitions()) {
+			dprintf(CRITICAL, "Card in slot %d doesn't contain requied for boot partitions\n", slot);
+			mmc_put_card_to_sleep(initialized_dev);
+			return FALSE;
+		}
+		return TRUE;
+	}
+	dprintf(CRITICAL, "Error initializing card in slot %d\n", slot);
+	return FALSE;
+}
+
+void target_sdc_init(void)
+{
+	int ret = FALSE;
 	/*
 	 * Set drive strength & pull ctrl for emmc
 	 */
 	set_sdc_power_ctrl();
 
-	config.bus_width = DATA_BUS_WIDTH_8BIT;
-	config.max_clk_rate = MMC_CLK_200MHZ;
+	/* Trying Slot 1 (eMMC) first*/
+	ret = target_sdc_init_slot(EMMC_CARD);
+	dprintf(CRITICAL, "target_sdc_init_slot(EMMC_CARD) returned %d, dev=%p\n", ret, dev);
 
-	/* Trying Slot 1*/
-	config.slot = 1;
-	config.sdhc_base = mmc_sdhci_base[config.slot - 1];
-	config.pwrctl_base = mmc_pwrctl_base[config.slot - 1];
-	config.pwr_irq     = mmc_sdc_pwrctl_irq[config.slot - 1];
-	config.hs400_support = 0;
-
-	if (!(dev = mmc_init(&config)))
+	if (!dev || !ret) // We need GPT on SD card to be able to boot from it
 	{
-		/* Trying Slot 2 next */
-		config.slot = 2;
-		config.sdhc_base = mmc_sdhci_base[config.slot - 1];
-		config.pwrctl_base = mmc_pwrctl_base[config.slot - 1];
-		config.pwr_irq     = mmc_sdc_pwrctl_irq[config.slot - 1];
-
-		if (!(dev = mmc_init(&config))) {
-			dprintf(CRITICAL, "mmc init failed!");
+		/* Trying Slot 2 (SD) next*/
+		ret = target_sdc_init_slot(SD_CARD);
+		dprintf(CRITICAL, "target_sdc_init_slot(SD_CARD) returned %d, dev=%p\n", ret, dev);
+		if (!dev || !ret) {
+			dprintf(CRITICAL, "mmc init failed!\n");
 			ASSERT(0);
 		}
-	}
-
-	/*
-	 * MMC initialization is complete, read the partition table info
-	 */
-	if (partition_read_table()) {
-		dprintf(CRITICAL, "Error reading the partition table info\n");
-		ASSERT(0);
 	}
 }
 

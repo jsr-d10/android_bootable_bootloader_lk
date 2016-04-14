@@ -40,7 +40,7 @@
 extern void clock_init_mmc(uint32_t);
 extern void clock_config_mmc(uint32_t, uint32_t);
 int emmc_retries = 0;
-int emmc_health = EMMC_GOOD;
+int emmc_health = EMMC_UNKNOWN;
 
 /* data access time unit in ns */
 static const uint32_t taac_unit[] =

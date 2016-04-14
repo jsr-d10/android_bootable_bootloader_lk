@@ -124,7 +124,14 @@ enum emmc_states
 {
 	EMMC_GOOD = 0,
 	EMMC_BAD,
-	EMMC_FAILURE
+	EMMC_FAILURE,
+	EMMC_UNKNOWN
+};
+
+enum card_in_slot
+{
+	EMMC_CARD=1,
+	SD_CARD,
 };
 extern int emmc_health;
 extern int emmc_retries;
