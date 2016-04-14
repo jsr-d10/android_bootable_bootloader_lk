@@ -78,6 +78,7 @@ static unsigned page_mask = 0;
 static char ffbm_mode_string[FFBM_MODE_BUF_SIZE];
 static bool boot_into_ffbm;
 bool boot_into_fastboot = false;
+uint32_t swap_sdcc = SDCC_EMMC_SD;
 static char target_boot_params[64];
 static bool boot_reason_alarm;
 
@@ -263,6 +264,10 @@ unsigned char *update_cmdline(const char * cmdline)
 		cmdline_len += strlen(warmboot_cmdline);
 	}
 
+	if (swap_sdcc) {
+		cmdline_len += strlen(swap_sdcc_cmdline[swap_sdcc]);
+	}
+
 	if (cmdline_len > 0) {
 		const char *src;
 		unsigned char *dst = (unsigned char*) malloc((cmdline_len + 4) & (~3));
@@ -296,6 +301,12 @@ unsigned char *update_cmdline(const char * cmdline)
 		if (warm_boot) {
 			if (have_cmdline) --dst;
 			src = warmboot_cmdline;
+			while ((*dst++ = *src++));
+		}
+
+		if (swap_sdcc) {
+			if (have_cmdline) --dst;
+			src = swap_sdcc_cmdline[swap_sdcc];
 			while ((*dst++ = *src++));
 		}
 
@@ -2399,6 +2410,9 @@ void aboot_init(const struct app_descriptor *app)
 {
 	unsigned reboot_mode = 0;
 	unsigned hard_reboot_mode = 0;
+
+	if (emmc_health == EMMC_FAILURE)
+		swap_sdcc = SDCC_SD_EMMC;
 
 	/* Setup page size information for nv storage */
 	if (target_is_emmc_boot())

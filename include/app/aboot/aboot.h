@@ -98,6 +98,7 @@ static const char *emmc_cmdline = " androidboot.bootdevice=msm_sdcc.1";
 static const char *ufs_cmdline = " androidboot.bootdevice=msm_ufs.1";
 #else
 static const char *emmc_cmdline = " androidboot.emmc=true";
+static const char *swap_sdcc_cmdline[] = { "", " androidboot.swap_sdcc=1", " androidboot.swap_sdcc=2" };
 #endif
 static const char *usb_sn_cmdline = " androidboot.serialno=";
 static const char *androidboot_mode = " androidboot.mode=";
@@ -147,6 +148,13 @@ extern int fastboot_trigger(void);
 
 typedef void entry_func_ptr(unsigned, unsigned, unsigned*);
 
+enum swap_sdcc_mode {
+	SDCC_EMMC_SD = 0,
+	SDCC_SD_EMMC,
+	SDCC_SD_ONLY
+};
+
 extern bool boot_into_fastboot;
+extern uint32_t swap_sdcc;
 
 #endif // __ABOOT_H
