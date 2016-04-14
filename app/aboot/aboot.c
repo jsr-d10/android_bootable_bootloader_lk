@@ -67,6 +67,7 @@
 #include <app/aboot/recovery.h>
 #include <app/aboot/bootimg.h>
 #include <app/aboot/sparse_format.h>
+#include <app/aboot/menu.h>
 
 #include "image_verify.h"
 #include "mmc.h"
@@ -2508,6 +2509,11 @@ void aboot_init(const struct app_descriptor *app)
 		boot_reason_alarm = true;
 	}
 
+	// Enter boot menu after all checks to make sure that nobody will redfine user chooice from boot menu
+	if (keys_get_state(KEY_FUNCTION)) {
+		dprintf(CRITICAL,"Boot menu key sequence detected\n");
+		main_menu();
+	}
 normal_boot:
 	if (!boot_into_fastboot)
 	{
