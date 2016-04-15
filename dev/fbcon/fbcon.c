@@ -32,11 +32,20 @@
 #include <err.h>
 #include <stdlib.h>
 #include <dev/fbcon.h>
-#include <splash.h>
 #include <platform.h>
 #include <string.h>
 
+#define LOGO_JSR
+
+#ifdef LOGO_JSR
+#include <splash_jsr_tech.h>
+#else
+#include <splash.h>
+#endif
+
+#ifdef LOGO_JSR
 #define FBCON_RGB888_ONLY
+#endif
 
 #ifdef FBCON_RGB888_ONLY
 #define PXL_SIZE 3
@@ -394,21 +403,28 @@ void fbcon_putImage(struct fbimage *fbimg, bool flag);
 
 void display_image_on_screen()
 {
-	struct fbimage default_fbimg, *fbimg;
+	struct fbimage default_fbimg;
+	struct fbimage * fbimg = NULL;
 	bool flag = true;
 
 	fbcon_clear();
+#ifndef LOGO_JSR
 	fbimg = fetch_image_from_partition();
+#endif
 
 	if(!fbimg) {
 		flag = false;
 		fbimg = &default_fbimg;
 		fbimg->header.width = SPLASH_IMAGE_HEIGHT;
 		fbimg->header.height = SPLASH_IMAGE_WIDTH;
+#ifdef LOGO_JSR
+		fbimg->image = (unsigned char *)imageBuffer_jsr_tech;
+#else
 #if DISPLAY_TYPE_MIPI
 		fbimg->image = (unsigned char *)imageBuffer_rgb888;
 #else
 		fbimg->image = (unsigned char *)imageBuffer;
+#endif
 #endif
 	}
 
