@@ -369,10 +369,18 @@ void fbcon_set_font_type(struct raster_font * font)
 	}
 }
 
+void fbcon_set_splash_pos(int x, int y)
+{
+	config->splash_pos.x = x;
+	config->splash_pos.y = y;
+}
+
 void fbcon_setup(struct fbcon_config *_config)
 {
 	ASSERT(_config);
 	config = _config;
+
+	fbcon_set_splash_pos(-1, -1);  // SCREEN CENTER
 
 	switch (config->format) {
 #ifndef FBCON_RGB888_ONLY
@@ -481,11 +489,21 @@ void fbcon_putImage(struct fbimage *fbimg, bool flag)
 			}
 		}
 
-		image_base = ((((total_y/2) - (height / 2) ) *
-				(config->width)) + (total_x/2 - (width / 2)));
+		if (!flag && config->splash_pos.y >= 0) {
+			image_base = (unsigned)config->splash_pos.y * config->width;
+		} else {
+			image_base = ((total_y / 2) - (height / 2)) * config->width;
+		}
+		if (!flag && config->splash_pos.x >= 0) {
+			image_base += (unsigned)config->splash_pos.x;
+		} else {
+			image_base += (total_x / 2) - (width / 2);
+		}
+
 		for (i = 0; i < height; i++) {
-			memcpy (config->base + ((image_base + (i * (config->width))) * bytes_per_bpp),
-				logo_base + (i * pitch * bytes_per_bpp), width * bytes_per_bpp);
+			uint8_t * dst = (uint8_t *)config->base + ((image_base + (i * config->width)) * bytes_per_bpp);
+			uint8_t * src = logo_base + (i * pitch * bytes_per_bpp);
+			memcpy(dst, src, width * bytes_per_bpp);
 		}
 	}
 

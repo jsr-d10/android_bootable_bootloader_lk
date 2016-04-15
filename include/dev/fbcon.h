@@ -92,6 +92,7 @@ struct fbcon_config {
 	unsigned	format;
 	unsigned	pixel_size;
 	struct fb_console con;
+	struct fb_pos splash_pos;
 
 	void		(*update_start)(void);
 	int		(*update_done)(void);
