@@ -110,6 +110,7 @@ void fbcon_set_font_fg_color(unsigned color);
 void fbcon_set_font_bg_color(unsigned color);
 void fbcon_set_font_color(unsigned fg, unsigned bg);
 void fbcon_set_font_type(struct raster_font * font);
+void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h);
 void fbcon_print(char * str);
 void fbcon_cprint(char * str, unsigned color);
 void fbcon_aprint(char * str, int line, int align);

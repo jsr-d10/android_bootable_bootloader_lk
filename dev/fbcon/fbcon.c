@@ -36,6 +36,14 @@
 #include <platform.h>
 #include <string.h>
 
+#define FBCON_RGB888_ONLY
+
+#ifdef FBCON_RGB888_ONLY
+#define PXL_SIZE 3
+#else
+#define PXL_SIZE (config->pixel_size)
+#endif
+
 static struct fbcon_config * config = NULL;
 uint8_t header_line = 13; // for 25x57 font, under Tux logo
 
@@ -47,7 +55,7 @@ static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, c
 	uint8_t * glyph;
 
 	stride -= config->con.sym_width;
-	stride *= config->pixel_size;
+	stride *= PXL_SIZE;
 
 	gw = (config->con.font->width / 8) + 1;
 	cc = (uint8_t)c;
@@ -61,16 +69,17 @@ static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, c
 		for (x = 0; x < config->con.font->width; x++) {
 			if (data & 1) {
 				*(uint16_t *)pixels = (uint16_t)paint;
-				if (config->pixel_size == 3) {
-					*(pixels + 2) = (uint8_t)(paint >> 16);
-				}
+#ifndef FBCON_RGB888_ONLY
+				if (PXL_SIZE == 3)
+#endif
+				*(pixels + 2) = (uint8_t)(paint >> 16);
 			}
 			data >>= 1;
-			pixels += config->pixel_size;
+			pixels += PXL_SIZE;
 		}
 		if (config->con.font->width < config->con.sym_width) {
 			unsigned kx = config->con.sym_width - config->con.font->width;
-			pixels += kx * config->pixel_size;
+			pixels += kx * PXL_SIZE;
 		}
 		glyph += gw;
 		pixels += stride;
@@ -91,7 +100,7 @@ static void fbcon_scroll_up(void)
 	uint32_t * src;
 	uint32_t size, scanline;
 
-	scanline = config->stride * config->pixel_size;
+	scanline = config->stride * PXL_SIZE;
 	src = (uint32_t *)(config->base + config->con.sym_height * scanline);
 	size = (config->height - config->con.sym_height) * scanline;
 	size /= 4;
@@ -110,7 +119,7 @@ static void fbcon_scroll_up(void)
 
 void fbcon_clear(void)
 {
-	unsigned size = config->stride * config->height * config->pixel_size;
+	unsigned size = config->stride * config->height * PXL_SIZE;
 	memset(config->base, 0, size);
 }
 
@@ -140,7 +149,7 @@ uint8_t * get_char_pos_ptr(unsigned x, unsigned y)
 	fix_pos(&x, &y, NULL, NULL);
 	offset = config->con.cur.y * config->con.sym_height * config->stride;
 	offset += config->con.cur.x * config->con.sym_width;
-	pixels += offset * config->pixel_size;
+	pixels += offset * PXL_SIZE;
 	return pixels;
 } 
 
@@ -257,13 +266,16 @@ void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h)
 	pixels = get_char_pos_ptr(x, y);
 	iw = w * config->con.sym_width;
 	ih = h * config->con.sym_height;
-	stride = (config->stride - iw) * config->pixel_size;
+	stride = (config->stride - iw) * PXL_SIZE;
 
 	for (iy = 0; iy < ih; iy++) {
 		for (ix = 0; ix < iw; ix++) {
 			*(uint16_t *)pixels = (uint16_t)bg;
+#ifndef FBCON_RGB888_ONLY
+			if (PXL_SIZE == 3) {
+#endif
 			*(pixels + 2) = (uint8_t)(bg >> 16);
-			pixels += config->pixel_size;
+			pixels += PXL_SIZE;
 		}
 		pixels += stride;
 	}
@@ -354,9 +366,11 @@ void fbcon_setup(struct fbcon_config *_config)
 	config = _config;
 
 	switch (config->format) {
+#ifndef FBCON_RGB888_ONLY
 	case FB_FORMAT_RGB565:
 		config->pixel_size = 2;
 		break;
+#endif
 	case FB_FORMAT_RGB888:
 		config->pixel_size = 3;
 		break;
