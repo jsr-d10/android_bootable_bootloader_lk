@@ -208,6 +208,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 
 		/* If we are self signed, we break */
 		xn=X509_get_issuer_name(x);
+		(void)xn;
 		if (ctx->check_issued(ctx, x,x)) break;
 
 		/* If we were passed a cert chain, use it first */

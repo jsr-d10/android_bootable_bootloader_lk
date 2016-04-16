@@ -310,6 +310,7 @@ static int def_load_bio(CONF *conf, BIO *in, long *line)
 
 		clear_comments(conf, buf);
 		n=strlen(buf);
+		(void)n;
 		s=eat_ws(conf, buf);
 		if (IS_EOF(conf,*s)) continue; /* blank line */
 		if (*s == '[')
@@ -440,6 +441,7 @@ again:
 			v=NULL;
 			}
 		}
+	(void)ts;
 	if (buff != NULL) BUF_MEM_free(buff);
 	if (section != NULL) OPENSSL_free(section);
 	return(1);
@@ -465,9 +467,6 @@ err:
 
 static void clear_comments(CONF *conf, char *p)
 	{
-	char *to;
-
-	to=p;
 	for (;;)
 		{
 		if (IS_FCOMMENT(conf,*p))

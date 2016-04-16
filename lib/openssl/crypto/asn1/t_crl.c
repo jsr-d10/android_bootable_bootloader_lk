@@ -108,6 +108,7 @@ int X509_CRL_print(BIO *out, X509_CRL *x)
 	BIO_printf(out,"\n");
 
 	n=X509_CRL_get_ext_count(x);
+	(void)n;
 	X509V3_extensions_print(out, "CRL extensions",
 						x->crl->extensions, 0, 8);
 

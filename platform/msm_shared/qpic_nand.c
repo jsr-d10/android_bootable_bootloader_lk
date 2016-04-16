@@ -951,6 +951,7 @@ qpic_nand_blk_erase(uint32_t page)
 
 	/* Dummy read to unlock pipe. */
 	nand_ret = qpic_nand_read_reg(NAND_FLASH_STATUS, BAM_DESC_UNLOCK_FLAG, cmd_list_ptr);
+	(void)nand_ret;
 
 	/* Check for status errors*/
 	if (status)

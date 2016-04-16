@@ -600,6 +600,7 @@ void bn_mul_part_recursive(BN_ULONG *r, BN_ULONG *a, BN_ULONG *b, int n,
 		bn_sub_part_words(&(t[n]),&(b[n]),b,      tnb,tnb-n);
 		break;
 		}
+	(void)zero;
 		/* The zero case isn't yet implemented here. The speedup
 		   would probably be negligible. */
 # if 0
@@ -1012,7 +1013,6 @@ int BN_mul(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, BN_CTX *ctx)
 		{
 		if (i >= -1 && i <= 1)
 			{
-			int sav_j =0;
 			/* Find out the power of two lower or equal
 			   to the longest of the two numbers */
 			if (i >= 0)
@@ -1023,7 +1023,6 @@ int BN_mul(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, BN_CTX *ctx)
 				{
 				j = BN_num_bits_word((BN_ULONG)bl);
 				}
-			sav_j = j;
 			j = 1<<(j-1);
 			assert(j <= al || j <= bl);
 			k = j+j;

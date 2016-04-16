@@ -715,6 +715,7 @@ config_dsi_cmd_mode(unsigned short disp_width, unsigned short disp_height,
 	dprintf(SPEW, "Data Lane: 2 lane\n");
 
 	TRAFIC_MODE = 0;	// non burst mode with sync pulses
+	(void)TRAFIC_MODE;
 	dprintf(SPEW, "Traffic mode: non burst mode with sync pulses\n");
 
 	writel(0x02020202, DSI_INT_CTRL);
@@ -775,9 +776,11 @@ int mipi_dsi_video_config(unsigned short num_of_lanes)
 	unsigned char ystride = 3;
 
 	low_pwr_stop_mode = 0x1111;	// low pwr mode bit16:HSA, bit20:HBA,
+	(void)low_pwr_stop_mode;
 	// bit24:HFP, bit28:PULSE MODE, need enough
 	// time for swithc from LP to HS
 	eof_bllp_pwr = 0x9;	// low power stop mode or let cmd mode eng send
+	(void)eof_bllp_pwr;
 	// packets in hs or lp mode
 
 	status +=
@@ -1281,6 +1284,7 @@ int mipi_dsi_cmd_mode_config(unsigned short disp_width,
 	dprintf(SPEW, "Data Lane: 2 lane\n");
 
 	TRAFIC_MODE = 0;	// non burst mode with sync pulses
+	(void)TRAFIC_MODE;
 	dprintf(SPEW, "Traffic mode: non burst mode with sync pulses\n");
 
 	writel(0x02020202, DSI_INT_CTRL);

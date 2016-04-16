@@ -615,6 +615,7 @@ int PKCS7_set_cipher(PKCS7 *p7, const EVP_CIPHER *cipher)
 		return(0);
 	}
 	objtmp = OBJ_nid2obj(i);
+	(void)objtmp;
 
 	ec->cipher = cipher;
 	return 1;
