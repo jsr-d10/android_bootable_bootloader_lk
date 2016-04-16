@@ -769,7 +769,7 @@ enum handler_return udc_interrupt(void *arg)
 	if (n & STS_SLI) {
 		dprintf(INFO, "-- suspend --\n");
 		usb_online = 0;
-		fbcon_erase(0, 0, 5);
+		fbcon_set_bg(BLACK,0,0,5,1);
 	}
 	if (n & STS_PCI) {
 		dprintf(INFO, "-- portchange --\n");
