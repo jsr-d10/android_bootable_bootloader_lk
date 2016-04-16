@@ -265,9 +265,14 @@ int target_check_card_for_requied_partitions(void)
 
 int target_sdc_init_slot(int slot)
 {
-	static struct mmc_config_data config = {0};
+	struct mmc_config_data config = {0};
 	struct mmc_device *initialized_dev = NULL;
-	dprintf(CRITICAL, "%s: slot %d\n", __func__, slot);
+	dprintf(CRITICAL, "%s: slot %d, dev=%p\n", __func__, slot, dev);
+	if (dev->config.slot == slot)
+	{
+		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot, dev);
+		return TRUE;
+	}
 
 	config.bus_width = DATA_BUS_WIDTH_8BIT;
 	config.max_clk_rate = MMC_CLK_200MHZ;
@@ -285,18 +290,19 @@ int target_sdc_init_slot(int slot)
 		* MMC initialization is complete, read the partition table info
 		*/
 		if (partition_read_table()) {
-			dprintf(CRITICAL, "Error reading the partition table info from card in slot %d\n", slot);
+			dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
 			mmc_put_card_to_sleep(initialized_dev);
 			return FALSE;
 		}
 		if (!target_check_card_for_requied_partitions()) {
-			dprintf(CRITICAL, "Card in slot %d doesn't contain requied for boot partitions\n", slot);
+			dprintf(CRITICAL, ": slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
 			mmc_put_card_to_sleep(initialized_dev);
 			return FALSE;
 		}
+		dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
 		return TRUE;
 	}
-	dprintf(CRITICAL, "Error initializing card in slot %d\n", slot);
+	dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
 	return FALSE;
 }
 
