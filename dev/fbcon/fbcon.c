@@ -261,6 +261,17 @@ void fbcon_hprint(char * header, unsigned color)
 	strncpy(previous_header, header, sizeof(previous_header));
 }
 
+void fbcon_erase(int line, int column, int count)
+{
+	unsigned prev_fg_color = fbcon_get_font_fg_color();
+	fbcon_set_cursor_pos(column, line);
+	fbcon_set_font_fg_color(BLACK);
+	while ((count--)) {
+		fbcon_putc(0xDB);
+	}
+	fbcon_set_font_fg_color(prev_fg_color);
+}
+
 void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h)
 {
 	unsigned ky, kx, iy, ix, iw, ih;
