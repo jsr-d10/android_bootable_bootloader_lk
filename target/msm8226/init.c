@@ -270,7 +270,7 @@ int target_sdc_init_slot(int slot)
 	dprintf(CRITICAL, "%s: slot %d, dev=%p\n", __func__, slot, dev);
 	if (dev->config.slot == slot)
 	{
-		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot, dev);
+		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot);
 		return TRUE;
 	}
 
@@ -295,7 +295,7 @@ int target_sdc_init_slot(int slot)
 			return FALSE;
 		}
 		if (!target_check_card_for_requied_partitions()) {
-			dprintf(CRITICAL, ": slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
+			dprintf(CRITICAL, "%s: slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
 			mmc_put_card_to_sleep(initialized_dev);
 			return FALSE;
 		}

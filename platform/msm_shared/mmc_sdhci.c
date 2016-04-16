@@ -393,7 +393,7 @@ static uint32_t mmc_send_op_cond(struct sdhci_host *host, struct mmc_card *card,
 		} else
 			break;
 	} while (mmc_retry < MMC_MAX_COMMAND_RETRY);
-	if (slot == 1) {
+	if (slot == EMMC_CARD) {
 		emmc_retries = mmc_retry;
 		if (emmc_retries <= 1)
 			emmc_health = EMMC_GOOD;
@@ -1421,7 +1421,7 @@ uint32_t mmc_sd_set_hs(struct sdhci_host *host, struct mmc_card *card)
 }
 
 /*
- * Function: mmc_init_card
+ * Function: mmc_card_init
  * Arg     : mmc device structure
  * Return  : 0 on Success, 1 on Failure
  * Flow    : Performs initialization and identification of eMMC cards connected
@@ -1433,7 +1433,6 @@ static uint32_t mmc_card_init(struct mmc_device *dev)
 	uint32_t mmc_return = 0;
 	uint32_t status;
 	uint8_t bus_width = 0;
-	int32_t retries = 0;
 
 	struct sdhci_host *host;
 	struct mmc_card *card;
