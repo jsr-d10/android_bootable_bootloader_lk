@@ -395,9 +395,11 @@ static uint32_t mmc_send_op_cond(struct sdhci_host *host, struct mmc_card *card,
 	} while (mmc_retry < MMC_MAX_COMMAND_RETRY);
 	if (slot == 1) {
 		emmc_retries = mmc_retry;
-		if (emmc_retries && (mmc_retry < MMC_MAX_COMMAND_RETRY))
+		if (emmc_retries <= 1)
+			emmc_health = EMMC_GOOD;
+		if ((emmc_retries > 1) && (emmc_retries < MMC_MAX_COMMAND_RETRY))
 			emmc_health = EMMC_BAD;
-		else
+		else if (emmc_retries == MMC_MAX_COMMAND_RETRY)
 			emmc_health = EMMC_FAILURE;
 	}
 
