@@ -117,6 +117,7 @@ void fbcon_cprint(char * str, unsigned color);
 void fbcon_aprint(char * str, int line, int align);
 void fbcon_acprint(char * str, int line, int align, unsigned color);
 void fbcon_hprint(char * header, unsigned color);
+void fbcon_set_storage_status(void);
 
 enum align {
 	ALIGN_LEFT = 0,

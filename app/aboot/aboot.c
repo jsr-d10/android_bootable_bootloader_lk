@@ -2497,29 +2497,13 @@ void aboot_init(const struct app_descriptor *app)
 	dprintf(SPEW, "Display Init: Start\n");
 	target_display_init(device.display_panel);
 	fbcon_set_font_type(&font_25x57);
+	fbcon_set_storage_status(); // We must update storage status to make it visible after display init
 	fbcon_hprint("Starting aboot\n", WHITE);
 	dprintf(SPEW, "Display Init: Done\n");
 #endif
 	if(device.charging_enabled) {
 		pm8x41_iusb_max_config(IUSB_MAX_UA);
 		pm8x41_chgr_ctl_enable(TRUE);
-	}
-	char emmc_state[16] = "eMMC";
-	if (emmc_retries)
-		snprintf(emmc_state, sizeof(emmc_state), "[%d] eMMC", emmc_retries);
-
-	switch (emmc_health) {
-		case EMMC_GOOD:
-			fbcon_acprint(emmc_state, 0, ALIGN_RIGHT, GREEN);
-			break;
-		case EMMC_BAD:
-			fbcon_acprint(emmc_state, 0, ALIGN_RIGHT, YELLOW);
-			break;
-		case EMMC_FAILURE:
-			fbcon_acprint(emmc_state, 0, ALIGN_RIGHT, RED);
-			break;
-		default:
-			break;
 	}
 
 	target_serialno((unsigned char *) sn_buf);

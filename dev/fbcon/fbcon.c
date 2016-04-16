@@ -34,6 +34,9 @@
 #include <dev/fbcon.h>
 #include <platform.h>
 #include <string.h>
+#include <mmc_sdhci.h>
+#include <sdhci_msm.h>
+#include <target.h>
 
 #define LOGO_JSR
 
@@ -524,4 +527,40 @@ void fbcon_putImage(struct fbimage *fbimg, bool flag)
 	}
 	fbcon_flush();
 #endif /* DISPLAY_TYPE_MIPI */
+}
+
+void fbcon_set_storage_status(void)
+{
+	char card_state[16] = { 0 };
+	struct mmc_device *dev = target_mmc_device();
+
+	switch (dev->config.slot) {
+		case EMMC_CARD:
+			snprintf(card_state, sizeof(card_state), "[%d] eMMC", dev->card.retries);
+			dprintf(CRITICAL, "%s: Slot id: %d\n", __func__, dev->config.slot);
+			break;
+		case SD_CARD:
+			snprintf(card_state, sizeof(card_state), "[%d] SD", dev->card.retries);
+			dprintf(CRITICAL, "%s: Slot id: %d\n", __func__, dev->config.slot);
+			break;
+		default:
+			dprintf(CRITICAL, "%s: Unknown slot id: %d\n", __func__, dev->config.slot);
+			break;
+	}
+	fbcon_set_bg(BLACK, config->con.max.x - 9, 0, 9, 1);
+	switch (dev->card.retries) {
+		case 0:
+		case 1:
+			dprintf(CRITICAL, "%s: Health good, slot=%d, retries=%d\n", __func__, dev->config.slot, dev->card.retries);
+			fbcon_acprint(card_state, 0, ALIGN_RIGHT, GREEN);
+			break;
+		case MMC_MAX_COMMAND_RETRY:
+			dprintf(CRITICAL, "%s: Health failure, slot=%d, retries=%d\n", __func__, dev->config.slot, dev->card.retries);
+			fbcon_acprint(card_state, 0, ALIGN_RIGHT, RED);
+			break;
+		default:
+			dprintf(CRITICAL, "%s: Health bad, slot=%d, retries=%d\n", __func__, dev->config.slot, dev->card.retries);
+			fbcon_acprint(card_state, 0, ALIGN_RIGHT, YELLOW);
+			break;
+	}
 }

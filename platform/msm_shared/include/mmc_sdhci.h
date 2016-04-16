@@ -292,12 +292,13 @@ struct mmc_card {
 	struct mmc_csd csd;      /* CSD structure */
 	struct mmc_sd_scr scr;   /* SCR structure */
 	struct mmc_sd_ssr ssr;   /* SSR Register */
+	uint32_t retries;      /* Card initialization retries count */
 };
 
 /* mmc device config data */
 struct mmc_config_data {
 	uint8_t slot;          /* Sdcc slot used */
-	uint32_t pwr_irq;       /* Power Irq from card to host */
+	uint32_t pwr_irq;      /* Power Irq from card to host */
 	uint32_t sdhc_base;    /* Base address for the sdhc */
 	uint32_t pwrctl_base;  /* Base address for power control registers */
 	uint16_t bus_width;    /* Bus width used */

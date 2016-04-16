@@ -300,6 +300,7 @@ int target_sdc_init_slot(int slot)
 			return FALSE;
 		}
 		dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
+		fbcon_set_storage_status();
 		return TRUE;
 	}
 	dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);

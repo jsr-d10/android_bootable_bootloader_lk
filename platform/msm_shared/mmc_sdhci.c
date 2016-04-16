@@ -402,6 +402,7 @@ static uint32_t mmc_send_op_cond(struct sdhci_host *host, struct mmc_card *card,
 		else if (emmc_retries == MMC_MAX_COMMAND_RETRY)
 			emmc_health = EMMC_FAILURE;
 	}
+	card->retries = mmc_retry;
 
 	/* If we reached here after max retries, we failed to get OCR */
 	if (mmc_retry == MMC_MAX_COMMAND_RETRY && !(mmc_resp & MMC_OCR_BUSY)) {
@@ -1267,6 +1268,7 @@ uint32_t mmc_sd_card_init(struct sdhci_host *host, struct mmc_card *card)
 		dprintf(CRITICAL, "Error: ACMD41 response timed out\n");
 		return 1;
 	}
+	card->retries = i;
 
 	return 0;
 }
