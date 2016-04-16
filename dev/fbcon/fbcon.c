@@ -149,7 +149,7 @@ void fix_pos(unsigned * x, unsigned * y, unsigned * w, unsigned * h)
 	}
 	if (h) {
 		unsigned yy = y ? *y : 0;
-		if (yy + *h >= config->con.max.y) *w = config->con.max.y - 1 - yy;
+		if (yy + *h >= config->con.max.y) *h = config->con.max.y - 1 - yy;
 	}
 }
 
