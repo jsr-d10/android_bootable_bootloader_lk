@@ -314,15 +314,15 @@ void target_sdc_init(void)
 	 */
 	set_sdc_power_ctrl();
 
-	/* Trying Slot 1 (eMMC) first*/
-	ret = target_sdc_init_slot(EMMC_CARD);
-	dprintf(CRITICAL, "target_sdc_init_slot(EMMC_CARD) returned %d, dev=%p\n", ret, dev);
+	/* Trying Slot 2 (SD) first*/
+	ret = target_sdc_init_slot(SD_CARD);
+	dprintf(CRITICAL, "target_sdc_init_slot(SD_CARD) returned %d, dev=%p\n", ret, dev);
 
 	if (!dev || !ret) // We need GPT on SD card to be able to boot from it
 	{
-		/* Trying Slot 2 (SD) next*/
-		ret = target_sdc_init_slot(SD_CARD);
-		dprintf(CRITICAL, "target_sdc_init_slot(SD_CARD) returned %d, dev=%p\n", ret, dev);
+		/* Trying Slot 1 (eMMC) next*/
+		ret = target_sdc_init_slot(EMMC_CARD);
+		dprintf(CRITICAL, "target_sdc_init_slot(EMMC_CARD) returned %d, dev=%p\n", ret, dev);
 		if (!dev || !ret) {
 			dprintf(CRITICAL, "mmc init failed!\n");
 			ASSERT(0);
