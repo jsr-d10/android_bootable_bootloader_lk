@@ -156,8 +156,8 @@ uint8_t * get_char_pos_ptr(unsigned x, unsigned y)
 	uint8_t * pixels = config->base;
 
 	fix_pos(&x, &y, NULL, NULL);
-	offset = config->con.cur.y * config->con.sym_height * config->stride;
-	offset += config->con.cur.x * config->con.sym_width;
+	offset = y * config->con.sym_height * config->stride;
+	offset += x * config->con.sym_width;
 	pixels += offset * PXL_SIZE;
 	return pixels;
 } 
