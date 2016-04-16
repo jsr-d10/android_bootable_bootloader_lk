@@ -423,8 +423,8 @@ void display_image_on_screen()
 	if(!fbimg) {
 		flag = false;
 		fbimg = &default_fbimg;
-		fbimg->header.width = SPLASH_IMAGE_HEIGHT;
-		fbimg->header.height = SPLASH_IMAGE_WIDTH;
+		fbimg->header.width = SPLASH_IMAGE_WIDTH;
+		fbimg->header.height = SPLASH_IMAGE_HEIGHT;
 #ifdef LOGO_JSR
 		fbimg->image = (unsigned char *)imageBuffer_jsr_tech;
 #else
