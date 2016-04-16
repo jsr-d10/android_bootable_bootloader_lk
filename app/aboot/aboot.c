@@ -2504,9 +2504,9 @@ void aboot_init(const struct app_descriptor *app)
 		pm8x41_iusb_max_config(IUSB_MAX_UA);
 		pm8x41_chgr_ctl_enable(TRUE);
 	}
-	char emmc_state[32] = "eMMC\n";
+	char emmc_state[16] = "eMMC";
 	if (emmc_retries)
-		snprintf(emmc_state, sizeof(emmc_state), "[%d] eMMC\n", emmc_retries);
+		snprintf(emmc_state, sizeof(emmc_state), "[%d] eMMC", emmc_retries);
 
 	switch (emmc_health) {
 		case EMMC_GOOD:
