@@ -499,7 +499,9 @@ again:
 			goto again;
 		}
 
-		fastboot_info("unknown command");
+		char buf[MAX_RSP_SIZE-5] = {0};
+		snprintf(buf, MAX_RSP_SIZE-5, "unknown command: %s", buffer);
+		fastboot_info(buf);
 		fastboot_info("See 'fastboot oem help'");
 		fastboot_fail("");
 
