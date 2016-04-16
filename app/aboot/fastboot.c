@@ -508,7 +508,6 @@ again:
 	}
 	fastboot_state = STATE_OFFLINE;
 	dprintf(INFO,"fastboot: oops!\n");
-	fbcon_hprint("Fastboot mode", OLIVE);
 	free(buffer);
 }
 
