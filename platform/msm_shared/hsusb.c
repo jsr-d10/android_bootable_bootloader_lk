@@ -39,6 +39,7 @@
 #include <platform/interrupts.h>
 #include <platform/timer.h>
 #include <kernel/thread.h>
+#include <dev/fbcon.h>
 #include <reg.h>
 #include <dev/udc.h>
 #include "hsusb.h"
@@ -748,6 +749,7 @@ enum handler_return udc_interrupt(void *arg)
 		writel(0xffffffff, USB_ENDPTFLUSH);
 		writel(0, USB_ENDPTCTRL(1));
 		dprintf(INFO, "-- reset --\n");
+		fbcon_acprint("  USB", 0, ALIGN_LEFT, YELLOW);
 		usb_online = 0;
 		usb_config_value = 0;
 		the_gadget->notify(the_gadget, UDC_EVENT_OFFLINE);
@@ -765,16 +767,21 @@ enum handler_return udc_interrupt(void *arg)
 		usb_status(0, usb_highspeed);
 	}
 	if (n & STS_SLI) {
-		DBG("-- suspend --\n");
+		dprintf(INFO, "-- suspend --\n");
+		usb_online = 0;
+		fbcon_erase(0, 0, 5);
 	}
 	if (n & STS_PCI) {
 		dprintf(INFO, "-- portchange --\n");
 		unsigned spd = (readl(USB_PORTSC) >> 26) & 3;
 		if (spd == 2) {
 			usb_highspeed = 1;
+			fbcon_acprint("HS", 0, ALIGN_LEFT, GREEN);
 		} else {
+			fbcon_acprint("HS", 0, ALIGN_LEFT, RED);
 			usb_highspeed = 0;
 		}
+		fbcon_acprint("  USB", 0, ALIGN_LEFT, GREEN);
 	}
 	if (n & STS_UEI) {
 		DBG("STS_UEI\n");
