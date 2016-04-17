@@ -284,7 +284,8 @@ int target_sdc_init_slot(int slot)
 	config.hs400_support = 0;
 	initialized_dev = mmc_init(&config);
 	if (initialized_dev) {
-		mmc_put_card_to_sleep(dev);
+		if (dev)
+			mmc_put_card_to_sleep(dev);
 		dev = initialized_dev;
 		/*
 		* MMC initialization is complete, read the partition table info

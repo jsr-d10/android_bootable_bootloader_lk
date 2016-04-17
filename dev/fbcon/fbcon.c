@@ -541,7 +541,15 @@ void fbcon_putImage(struct fbimage *fbimg, bool flag)
 void fbcon_set_storage_status(void)
 {
 	char card_state[16] = { 0 };
-	struct mmc_device *dev = target_mmc_device();
+	struct mmc_device *dev;
+
+	/* ignore anything that happens before fbcon is initialized */
+	if (!config)
+		return;
+
+	dev = target_mmc_device();
+	if (!dev)
+		return;
 
 	switch (dev->config.slot) {
 		case EMMC_CARD:
