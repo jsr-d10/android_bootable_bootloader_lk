@@ -182,33 +182,34 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case EMMC_BOOT:
 			if (dev->config.slot != EMMC_CARD)
 				target_sdc_init_slot(EMMC_CARD);
+			swap_sdcc = SDCC_EMMC_SD;
 			boot_into_fastboot = false;
 			boot_into_recovery = 0;
 			break;
 		case EMMC_RECOVERY:
 			if (dev->config.slot != EMMC_CARD)
 				target_sdc_init_slot(EMMC_CARD);
+			swap_sdcc = SDCC_EMMC_SD;
 			boot_into_fastboot = false;
 			boot_into_recovery = 1;
 			break;
 		case EMMC_FASTBOOT:
 			if (dev->config.slot != EMMC_CARD)
 				target_sdc_init_slot(EMMC_CARD);
+			swap_sdcc = SDCC_EMMC_SD;
 			boot_into_fastboot = true;
 			break;
 		case SD_BOOT:
 			if (dev->config.slot != SD_CARD)
 				target_sdc_init_slot(SD_CARD);
-			if (!swap_sdcc)
-				swap_sdcc = SDCC_SD_EMMC;
+			swap_sdcc = SDCC_SD_EMMC;
 			boot_into_fastboot = false;
 			boot_into_recovery = 0;
 			break;
 		case SD_RECOVERY:
 			if (dev->config.slot != SD_CARD)
 				target_sdc_init_slot(SD_CARD);
-			if (!swap_sdcc)
-				swap_sdcc = SDCC_SD_EMMC;
+			swap_sdcc = SDCC_SD_EMMC;
 			boot_into_fastboot = false;
 			boot_into_recovery = 1;
 			break;
@@ -216,8 +217,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case SD_FASTBOOT:
 			if (dev->config.slot != SD_CARD)
 				target_sdc_init_slot(SD_CARD);
-			if (!swap_sdcc)
-				swap_sdcc = SDCC_SD_EMMC;
+			swap_sdcc = SDCC_SD_EMMC;
 			boot_into_fastboot = true;
 			break;
 		case REBOOT_MENU:
