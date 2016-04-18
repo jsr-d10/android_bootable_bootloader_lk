@@ -2472,6 +2472,10 @@ void aboot_init(const struct app_descriptor *app)
 {
 	unsigned reboot_mode = 0;
 	unsigned hard_reboot_mode = 0;
+	struct mmc_device *dev = target_mmc_device();
+
+	if (dev && dev->config.slot == SD_CARD)
+		swap_sdcc = SDCC_SD_EMMC;
 
 	if (emmc_health == EMMC_FAILURE)
 		swap_sdcc = SDCC_SD_EMMC;
