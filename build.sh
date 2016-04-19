@@ -41,6 +41,7 @@ fi
 
 mkdir -p "$build_dir"
 
+touch dev/fbcon/fbcon.c # Force rebuilding it to make sure that version string is updated
 make DEBUG=2 PROJECT=msm8226 BOOTLOADER_OUT="$build_dir" EMMC_BOOT=1 VERSION="$(git describe --tags)" -j3
 if [ $? -gt 0 ]; then
     echo ""
