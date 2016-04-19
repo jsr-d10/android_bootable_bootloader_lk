@@ -2501,6 +2501,7 @@ void aboot_init(const struct app_descriptor *app)
 	dprintf(SPEW, "Display Init: Start\n");
 	target_display_init(device.display_panel);
 	fbcon_set_font_type(&font_25x57);
+	fbcon_print_version();
 	fbcon_set_storage_status(); // We must update storage status to make it visible after display init
 	fbcon_hprint("Starting aboot\n", WHITE);
 	dprintf(SPEW, "Display Init: Done\n");

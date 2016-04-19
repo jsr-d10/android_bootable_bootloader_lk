@@ -132,6 +132,7 @@ unsigned fbcon_get_header_line(void);
 void fbcon_set_header_line(unsigned line);
 
 void fbcon_set_storage_status(void);
+void fbcon_print_version(void);
 
 enum align {
 	ALIGN_LEFT = 0,

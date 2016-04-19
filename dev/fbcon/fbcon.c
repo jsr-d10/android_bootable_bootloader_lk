@@ -37,6 +37,7 @@
 #include <mmc_sdhci.h>
 #include <sdhci_msm.h>
 #include <target.h>
+#include <dev/font/font-12x16.h>
 
 #define LOGO_JSR
 
@@ -638,4 +639,18 @@ void fbcon_set_storage_status(void)
 			fbcon_acprint(card_state, 0, ALIGN_RIGHT, YELLOW);
 			break;
 	}
+}
+
+void fbcon_print_version(void)
+{
+	struct raster_font *font = fbcon_get_font_type();
+	unsigned prev_fg_color = fbcon_get_font_fg_color();
+	fbcon_set_font_type(&font_12x16);
+	fbcon_set_font_fg_color(WHITE);
+	fbcon_acprintf(config->con.max.y-4, ALIGN_CENTER,  WHITE, "IBL " VERSION " Built at " __DATE__ " " __TIME__ "\n\n");
+	fbcon_print("Developed by\n");
+	fbcon_print("  S-trace <S-trace@list.ru>\n");
+	fbcon_print("  acDev <remittor@gmail.com>");
+	fbcon_set_font_fg_color(prev_fg_color);
+	fbcon_set_font_type(font);
 }

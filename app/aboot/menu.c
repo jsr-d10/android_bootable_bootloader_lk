@@ -285,6 +285,7 @@ void main_menu(void) {
 	fbcon_set_splash_pos(-1, 220);
 	display_image_on_screen();
 	fbcon_set_header_line(7);
+	fbcon_print_version();
 	fbcon_set_storage_status(); // We must update storage status to make it visible after display_image_on_screen()
 
 	draw_menu(boot_menu, 0);
