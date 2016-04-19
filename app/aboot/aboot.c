@@ -87,7 +87,17 @@ static bool boot_reason_alarm;
 /* Assuming unauthorized kernel image by default */
 static int auth_kernel_img = 0;
 
-static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}, 0, 0, 0};
+static device_info device = {
+	.magic = DEVICE_MAGIC,
+	.is_unlocked = false,
+	.is_tampered = false,
+	.charger_screen_enabled = true,
+	.display_panel = {0},
+	.charging_enabled = false,
+	.isolated_sdcard = false,
+	.default_boot_media = BOOT_MEDIA_SD,
+	.last_boot_media = BOOT_MEDIA_SD
+};
 
 /*
  * Right now, we are publishing the info for only
