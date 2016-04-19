@@ -28,6 +28,7 @@ static struct menu *boot_menu(void) {
 		add_menu_item(menu, 1, header_line + C++, OLIVE,  "FASTBOOT from SD", SD_FASTBOOT);
 	}
 	add_menu_item(menu, 1, header_line + C++, PURPLE, "REBOOT MENU =>",  REBOOT_MENU);
+	add_menu_item(menu, 1, header_line + C++, SILVER, "OPTIONS MENU =>", OPTIONS_MENU);
 	return menu;
 }
 
@@ -41,6 +42,24 @@ static struct menu *reboot_menu(void) {
 	add_menu_item(menu, 1, header_line + 5, FUCHSIA, "SHUTDOWN",        SHUTDOWN);
 	add_menu_item(menu, 1, header_line + 6, SILVER,  "NORMAL    DLOAD (9006)", DLOAD_NORMAL);
 	add_menu_item(menu, 1, header_line + 7, GRAY,    "EMERGENCY DLOAD (9008)", DLOAD_EMERGENCY);
+	return menu;
+}
+
+static struct menu *options_menu(void) {
+	device_info *device = get_device_info();
+	unsigned header_line = fbcon_get_header_line();
+	struct menu *menu = NULL;
+	menu = create_menu ("Options menu", SILVER, 0x10);
+
+	char charger_screen[MAX_ITEM_LEN];
+	char charging_in_bootloader[MAX_ITEM_LEN];
+
+	snprintf(charger_screen, MAX_ITEM_LEN, "CHARGER SCREEN:         %s", device->charger_screen_enabled ? "Y" : "N");
+	snprintf(charging_in_bootloader, MAX_ITEM_LEN, "CHARGING IN BOOTLOADER: %s", device->charging_enabled ? "Y" : "N");
+
+	add_menu_item(menu, 1, header_line + 2, NAVY,    "BACK TO BOOT MENU =>",   BOOT_MENU);
+	add_menu_item(menu, 1, header_line + 3, RED,     charger_screen,         CHARGER_SCREEN_TOGGLE);
+	add_menu_item(menu, 1, header_line + 4, YELLOW,  charging_in_bootloader, CHARGING_TOGGLE);
 	return menu;
 }
 
@@ -200,6 +219,7 @@ static uint32_t process_menu(struct menu *menu) {
 static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	struct mmc_device *dev;
 
+	device_info *device = get_device_info();
 	dprintf(SPEW, "%s: processing selection=%d\n", __func__, selection);
 	dev = target_mmc_device();
 
@@ -269,6 +289,29 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 
 		case SHUTDOWN:
 			shutdown_device();
+			break;
+
+		case OPTIONS_MENU:
+			destroy_menu(menu);
+			draw_menu(options_menu, 500);
+			break;
+
+		case CHARGER_SCREEN_TOGGLE:
+			if (device->charger_screen_enabled)
+				cmd_oem_disable_charger_screen(NULL, NULL, 0);
+			else
+				cmd_oem_enable_charger_screen(NULL, NULL, 0);
+			destroy_menu(menu);
+			draw_menu(options_menu, 500);
+			break;
+
+		case CHARGING_TOGGLE:
+			if (device->charging_enabled)
+				cmd_oem_disable_charging(NULL, NULL, 0);
+			else
+				cmd_oem_enable_charging(NULL, NULL, 0);
+			destroy_menu(menu);
+			draw_menu(options_menu, 500);
 			break;
 
 		default:

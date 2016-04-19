@@ -159,4 +159,10 @@ extern uint32_t swap_sdcc;
 
 device_info *get_device_info(void);
 
+void cmd_oem_disable_charging(const char *arg, void *data, unsigned size);
+void cmd_oem_enable_charging(const char *arg, void *data, unsigned size);
+void cmd_oem_disable_charger_screen(const char *arg, void *data, unsigned size);
+void cmd_oem_enable_charger_screen(const char *arg, void *data, unsigned size);
+void write_device_info(device_info *dev);
+
 #endif // __ABOOT_H

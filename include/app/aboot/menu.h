@@ -1,6 +1,9 @@
 #ifndef __MENU_H
 #define __MENU_H
 
+// Maximum menu item title length
+#define MAX_ITEM_LEN 26
+
 enum item_types {
 	EMMC_BOOT = 0,
 	EMMC_RECOVERY,
@@ -15,6 +18,9 @@ enum item_types {
 	SHUTDOWN,
 	BOOT_MENU,
 	REBOOT_MENU,
+	OPTIONS_MENU,
+	CHARGER_SCREEN_TOGGLE,
+	CHARGING_TOGGLE
 };
 
 struct menu_item {
