@@ -1301,16 +1301,19 @@ void write_device_info_mmc(device_info *dev)
 	uint8_t lun = 0;
 	struct mmc_device *mmc_dev = target_mmc_device();
 	int slot = SD_CARD;
+	dprintf(SPEW, "%s: entered\n", __func__);
 
 	if (mmc_dev)
 		slot = mmc_dev->config.slot;
 
-	target_sdc_init_slot(SD_CARD); // Saving settings to SD_CARD if possible, coz we read them from it
+	if (!target_sdc_init_slot(SD_CARD)) // Try to save settings to SD_CARD if possible, coz we read them from it
+		target_sdc_init_slot(EMMC_CARD);
 
 	index = partition_get_index("aboot");
 	ptn = partition_get_offset(index);
 	if(ptn == 0)
 	{
+		dprintf(CRITICAL, "%s: cannot find aboot partition!\n", __func__);
 		return;
 	}
 
@@ -1329,6 +1332,8 @@ void write_device_info_mmc(device_info *dev)
 		target_sdc_init_slot(slot);
 		return;
 	}
+	dprintf(SPEW, "%s: done\n", __func__);
+
 	target_sdc_init_slot(slot);
 }
 
