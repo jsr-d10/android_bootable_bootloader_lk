@@ -274,16 +274,7 @@ void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h)
 		w = config->con.max.x;
 		h = config->con.max.y;
 	}
-
-	if (x > config->con.max.x)
-		x = config->con.max.x;
-	if (y > config->con.max.y)
-		y = config->con.max.y;
-	if (x + w > config->con.max.x)
-		w = config->con.max.x - x;
-	if (y + h >= config->con.max.y)
-		h = config->con.max.y - y;
-
+	fix_pos(&x, &y, &w, &h);
 	pixels = get_char_pos_ptr(x, y);
 	iw = w * config->con.sym_width;
 	ih = h * config->con.sym_height;
