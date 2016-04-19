@@ -127,6 +127,9 @@ int fbcon_acprint(const char * str, int line, int align, unsigned color);
 
 void fbcon_hprint(const char * header, unsigned color);
 
+unsigned fbcon_get_header_line(void);
+void fbcon_set_header_line(unsigned line);
+
 void fbcon_set_storage_status(void);
 
 enum align {
@@ -153,7 +156,5 @@ enum colors {
 	TEAL    = 0x008080,
 	AQUA    = 0x00FFFF,
 };
-
-extern uint8_t header_line;
 
 #endif /* __DEV_FBCON_H */

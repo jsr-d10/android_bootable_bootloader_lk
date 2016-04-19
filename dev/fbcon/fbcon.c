@@ -57,7 +57,7 @@
 #endif
 
 static struct fbcon_config * config = NULL;
-uint8_t header_line = 13; // for 25x57 font, under Tux logo
+static uint8_t header_line = 13; // for 25x57 font, right under logo
 
 static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, char c)
 {
@@ -410,6 +410,16 @@ void fbcon_set_font_color(unsigned fg, unsigned bg)
 {
 	fbcon_set_font_fg_color(fg);
 	fbcon_set_font_bg_color(bg);
+}
+
+unsigned fbcon_get_header_line(void)
+{
+	return header_line;
+}
+
+void fbcon_set_header_line(unsigned line)
+{
+	header_line = line;
 }
 
 void fbcon_set_font_type(struct raster_font * font)

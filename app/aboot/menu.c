@@ -13,6 +13,7 @@ int sdcard_is_bootable = false;
 
 static struct menu *boot_menu(void) {
 	struct menu *menu = NULL;
+	unsigned header_line = fbcon_get_header_line();
 	menu = create_menu ("Boot menu", NAVY, 0x10);
 	int C = 2; //lines Counter
 	if (emmc_health != EMMC_FAILURE) {
@@ -31,6 +32,7 @@ static struct menu *boot_menu(void) {
 
 static struct menu *reboot_menu(void) {
 	struct menu *menu = NULL;
+	unsigned header_line = fbcon_get_header_line();
 	menu = create_menu ("Reboot menu", PURPLE, 0x10);
 	add_menu_item(menu, 1, header_line + 2, NAVY,    "BACK TO BOOT MENU =>", BOOT_MENU);
 	add_menu_item(menu, 1, header_line + 3, RED,     "REBOOT",          REBOOT);
