@@ -434,6 +434,11 @@ void fbcon_set_font_type(struct raster_font * font)
 	}
 }
 
+struct raster_font *fbcon_get_font_type(void)
+{
+	return config->con.font;
+}
+
 void fbcon_set_splash_pos(int x, int y)
 {
 	config->splash_pos.x = x;
