@@ -112,11 +112,21 @@ void fbcon_set_font_bg_color(unsigned color);
 void fbcon_set_font_color(unsigned fg, unsigned bg);
 void fbcon_set_font_type(struct raster_font * font);
 void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h);
-void fbcon_print(char * str);
-void fbcon_cprint(char * str, unsigned color);
-void fbcon_aprint(char * str, int line, int align);
-void fbcon_acprint(char * str, int line, int align, unsigned color);
-void fbcon_hprint(char * header, unsigned color);
+
+int fbcon_get_text_pos(int align, const char * str);
+
+int fbcon_printf(const char *fmt, ...);
+void fbcon_cprintf(unsigned color, const char * fmt, ...);
+void fbcon_aprintf(int line, int align, const char * fmt, ...);
+void fbcon_acprintf(int line, int align, unsigned color, const char * fmt, ...);
+
+void fbcon_print(const char * str);
+void fbcon_cprint(const char * str, unsigned color);
+void fbcon_aprint(const char * str, int line, int align);
+void fbcon_acprint(const char * str, int line, int align, unsigned color);
+
+void fbcon_hprint(const char * header, unsigned color);
+
 void fbcon_set_storage_status(void);
 
 enum align {

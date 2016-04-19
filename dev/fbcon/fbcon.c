@@ -211,7 +211,7 @@ newline:
 	}
 }
 
-void fbcon_print(char * str)
+void fbcon_print(const char * str)
 {
 	while (*str) {
 		fbcon_putc(*str);
@@ -219,44 +219,93 @@ void fbcon_print(char * str)
 	}
 }
 
-void fbcon_cprint(char * str, unsigned color)
+int fbcon_vprintf(const char *fmt, va_list ap)
 {
-	unsigned prev_fg_color = fbcon_get_font_fg_color();
-	fbcon_set_font_fg_color(color);
-	fbcon_print(str);
-	fbcon_set_font_fg_color(prev_fg_color);
+	char buf[256];
+	int ret = vsnprintf(buf, sizeof(buf)-2, fmt, ap);
+	if (ret > 0)
+		fbcon_print(buf);
+	return ret;
 }
 
-void fbcon_aprint(char * str, int line, int align)
+#define PRINTF(_fmt_) {     \
+	va_list ap;               \
+	va_start(ap, _fmt_);      \
+	fbcon_vprintf(_fmt_, ap); \
+	va_end(ap);               \
+	}
+
+int fbcon_printf(const char *fmt, ...)
 {
-	int position = 0;
+	int ret;
+	va_list ap;
+	va_start(ap, fmt);
+	ret = fbcon_vprintf(fmt, ap);
+	va_end(ap);
+	return ret;
+}
+
+int fbcon_get_text_pos(int align, const char * str)
+{
 	switch (align) {
 		case ALIGN_LEFT:
-			position = 0;
-			break;
+			return 0;
+
 		case ALIGN_CENTER:
-			position = (config->con.max.x - strlen(str)) / 2 + 1; // +1 is for \0 at end of string
-			break;
+			return (config->con.max.x - strlen(str)) / 2 + 1; // +1 is for \0 at end of string
+
 		case ALIGN_RIGHT:
-			position = config->con.max.x - strlen(str);
-			break;
-		default:
-			dprintf(CRITICAL, "%s: wrong alignment passed: %d", __func__, align);
-			return;
+			return config->con.max.x - strlen(str);
 	}
-	fbcon_set_cursor_pos(position, line);
-	fbcon_print(str);
+	dprintf(CRITICAL, "%s: wrong alignment passed: %d", __func__, align);
+	return -1;
 }
 
-void fbcon_acprint(char * str, int line, int align, unsigned color)
+void fbcon_cprintf(unsigned color, const char * fmt, ...)
 {
 	unsigned prev_fg_color = fbcon_get_font_fg_color();
 	fbcon_set_font_fg_color(color);
-	fbcon_aprint(str, line, align);
+	PRINTF(fmt);
 	fbcon_set_font_fg_color(prev_fg_color);
 }
 
-void fbcon_hprint(char * header, unsigned color)
+void fbcon_cprint(const char * str, unsigned color)
+{
+	fbcon_cprintf(color, str);
+}
+
+void fbcon_aprintf(int line, int align, const char * fmt, ...)
+{
+	int position = fbcon_get_text_pos(align, fmt);
+	if (position < 0)
+		return;
+	fbcon_set_cursor_pos(position, line);
+	PRINTF(fmt);
+}
+
+void fbcon_aprint(const char * str, int line, int align)
+{
+	fbcon_aprintf(line, align, str);
+}
+
+void fbcon_acprintf(int line, int align, unsigned color, const char * fmt, ...)
+{
+	int position = fbcon_get_text_pos(align, fmt);
+	unsigned prev_fg_color = fbcon_get_font_fg_color();
+	if (position < 0)
+		return;
+	fbcon_set_font_fg_color(color);
+	fbcon_set_cursor_pos(position, line);
+	PRINTF(fmt);
+	fbcon_set_font_fg_color(prev_fg_color);
+}
+
+void fbcon_acprint(const char * str, int line, int align, unsigned color)
+{
+	fbcon_acprintf(line, align, color, str);
+}
+
+void fbcon_hprint(const char * header, unsigned color)
 {
 	static char previous_header[145] = { 0 }; // for tiny 5x12 font
 	fbcon_acprint(previous_header, header_line, ALIGN_CENTER, BLACK);
