@@ -302,6 +302,12 @@ int target_sdc_init_slot(int slot)
 		}
 		dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
 		fbcon_set_storage_status();
+
+		if (dev->config.slot == EMMC_CARD) {
+			// Read serialno from eMMC on first initialization to avoid unncecssary reinitializations of cards
+			unsigned char sn_buf[13];
+			target_serialno(sn_buf);
+		}
 		return TRUE;
 	}
 	dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
@@ -429,11 +435,27 @@ void target_baseband_detect(struct board_data *board)
 
 void target_serialno(unsigned char *buf)
 {
-	uint32_t serialno;
-	if (target_is_emmc_boot()) {
+	static uint32_t serialno = 0;
+	unsigned current_slot = -1;
+
+	struct mmc_device *dev = target_mmc_device();
+	if (dev)
+		current_slot = dev->config.slot;
+
+	if (target_is_emmc_boot() && serialno == 0) {
+		if (emmc_health != EMMC_FAILURE && current_slot != EMMC_CARD) {
+		dprintf(SPEW, "%s: Initializing eMMC to get serialno\n", __func__);
+		target_sdc_init_slot(EMMC_CARD);
+		dev = target_mmc_device();
+		}
 		serialno = mmc_get_psn();
-		snprintf((char *)buf, 13, "%x", serialno);
+		dprintf(SPEW, "%s: read serialno %x\n", __func__, serialno);
+		if (dev && dev->config.slot != current_slot) {
+			dprintf(SPEW, "%s: Initializing slot %d back\n", __func__, current_slot);
+			target_sdc_init_slot(current_slot);
+		}
 	}
+	snprintf((char *)buf, 13, "%x", serialno);
 }
 
 unsigned check_reboot_mode(void)
