@@ -207,7 +207,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case EMMC_BOOT:
 		case EMMC_RECOVERY:
 		case EMMC_FASTBOOT:
-			if (dev->config.slot != EMMC_CARD)
+			if (!(dev && dev->config.slot == EMMC_CARD))
 				target_sdc_init_slot(EMMC_CARD);
 			swap_sdcc = SDCC_EMMC_SD;
 			break;
@@ -215,7 +215,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case SD_BOOT:
 		case SD_RECOVERY:
 		case SD_FASTBOOT:
-			if (dev->config.slot != SD_CARD)
+			if (!(dev && dev->config.slot == SD_CARD))
 				target_sdc_init_slot(SD_CARD);
 			swap_sdcc = SDCC_SD_EMMC;
 			break;
