@@ -281,5 +281,11 @@ void main_menu(void) {
 
 	if (emmc_health != EMMC_FAILURE)
 		target_sdc_init_slot(EMMC_CARD); // Try to initialize eMMC now and fetch it health state to emmc_health var
+
+	fbcon_set_splash_pos(-1, 220);
+	display_image_on_screen();
+	fbcon_set_header_line(7);
+	fbcon_set_storage_status(); // We must update storage status to make it visible after display_image_on_screen()
+
 	draw_menu(boot_menu, 0);
 }
