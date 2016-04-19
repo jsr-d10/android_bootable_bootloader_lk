@@ -226,7 +226,7 @@ static uint32_t process_menu(struct menu *menu) {
 		}
 		if (keys_get_state(KEY_POWER)) {
 			wait_vib_timeout();
-			vib_timed_turn_on(400);
+			vib_timed_turn_on(256);
 			move_cursor(selected, selected, RED, menu->cursor);
 			autoboot = false;
 			break;
