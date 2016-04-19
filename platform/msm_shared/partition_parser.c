@@ -84,6 +84,7 @@ unsigned int partition_read_table()
 {
 	unsigned int ret;
 	uint32_t block_size;
+	partition_count = 0;
 
 	block_size = mmc_get_device_blocksize();
 
@@ -92,6 +93,8 @@ unsigned int partition_read_table()
 	{
 		partition_entries = (struct partition_entry *) calloc(NUM_PARTITIONS, sizeof(struct partition_entry));
 		ASSERT(partition_entries);
+	} else {
+		memset(partition_entries,0, NUM_PARTITIONS * sizeof(struct partition_entry));
 	}
 
 	/* Read MBR of the card */
