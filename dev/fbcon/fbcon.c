@@ -138,18 +138,22 @@ void fbcon_clear(void)
 void fix_pos(unsigned * x, unsigned * y, unsigned * w, unsigned * h)
 {
 	if (x) {
-		if (*x >= config->con.max.x) *x = config->con.max.x - 1;
+		if (*x > config->con.max.x)
+			*x = config->con.max.x;
 	}
 	if (y) {
-		if (*y >= config->con.max.y) *y = config->con.max.y - 1;
+		if (*y > config->con.max.y)
+			*y = config->con.max.y;
 	}
 	if (w) {
 		unsigned xx = x ? *x : 0;
-		if (xx + *w >= config->con.max.x) *w = config->con.max.x - 1 - xx;
+		if (xx + *w > config->con.max.x)
+			*w = config->con.max.x - xx;
 	}
 	if (h) {
 		unsigned yy = y ? *y : 0;
-		if (yy + *h >= config->con.max.y) *h = config->con.max.y - 1 - yy;
+		if (yy + *h > config->con.max.y)
+			*h = config->con.max.y - yy;
 	}
 }
 
@@ -228,24 +232,20 @@ void fbcon_aprint(char * str, int line, int align)
 	int position = 0;
 	switch (align) {
 		case ALIGN_LEFT:
-			fbcon_set_cursor_pos(position, line);
-			fbcon_print(str);
+			position = 0;
 			break;
 		case ALIGN_CENTER:
 			position = (config->con.max.x - strlen(str)) / 2 + 1; // +1 is for \0 at end of string
-			fbcon_set_cursor_pos(position, line);
-			fbcon_print(str);
 			break;
 		case ALIGN_RIGHT:
 			position = config->con.max.x - strlen(str);
-			fbcon_set_cursor_pos(position, line);
-			fbcon_print(str);
 			break;
 		default:
 			dprintf(CRITICAL, "%s: wrong alignment passed: %d", __func__, align);
-			fbcon_print(str);
-			break;
+			return;
 	}
+	fbcon_set_cursor_pos(position, line);
+	fbcon_print(str);
 }
 
 void fbcon_acprint(char * str, int line, int align, unsigned color)
@@ -270,7 +270,7 @@ void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h)
 	unsigned stride;
 	uint8_t * pixels;
 
-	if (x == 0 && y == 0 && w == 0 && y == 0) {
+	if (x == 0 && y == 0 && w == 0 && h == 0) {
 		w = config->con.max.x;
 		h = config->con.max.y;
 	}
@@ -284,7 +284,7 @@ void fbcon_set_bg(unsigned bg, unsigned x, unsigned y, unsigned w, unsigned h)
 		for (ix = 0; ix < iw; ix++) {
 			*(uint16_t *)pixels = (uint16_t)bg;
 #ifndef FBCON_RGB888_ONLY
-			if (PXL_SIZE == 3) {
+			if (PXL_SIZE == 3)
 #endif
 			*(pixels + 2) = (uint8_t)(bg >> 16);
 			pixels += PXL_SIZE;
@@ -330,7 +330,7 @@ void fbcon_set_font_size(unsigned width, unsigned height)
 {
 	config->con.sym_width = width;
 	config->con.sym_height = height;
-	config->con.max.x = config->width / width;
+	config->con.max.x = (config->width - 1) / width;
 	config->con.max.y = (config->height - 1) / height;
 }
 
