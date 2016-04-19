@@ -44,6 +44,7 @@ struct device_info
 	bool charger_screen_enabled;
 	char display_panel[MAX_PANEL_ID_LEN];
 	bool charging_enabled;
+	bool isolated_sdcard;
 };
 
 #endif

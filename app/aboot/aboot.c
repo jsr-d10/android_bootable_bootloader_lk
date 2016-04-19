@@ -87,7 +87,7 @@ static bool boot_reason_alarm;
 /* Assuming unauthorized kernel image by default */
 static int auth_kernel_img = 0;
 
-static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}, 0};
+static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}, 0, 0};
 
 /*
  * Right now, we are publishing the info for only
@@ -102,6 +102,7 @@ struct getvar_partition_info part_info[] =
 
 char max_download_size[MAX_RSP_SIZE];
 char charger_screen_enabled[MAX_RSP_SIZE];
+char isolated_sdcard_enabled[MAX_RSP_SIZE];
 char sn_buf[13];
 char display_panel_buf[MAX_PANEL_BUF_SIZE];
 char panel_display_mode[MAX_RSP_SIZE];
@@ -1353,6 +1354,7 @@ void read_device_info_mmc(device_info *dev)
 		info->is_tampered = 0;
 		info->charger_screen_enabled = 1;
 		info->charging_enabled = 0;
+		info->isolated_sdcard = 0;
 
 		write_device_info_mmc(info);
 	}
@@ -2161,6 +2163,22 @@ void cmd_oem_disable_charging(const char *arg, void *data, unsigned size)
 	fastboot_okay("");
 }
 
+void cmd_oem_enable_isolated_sdcard_boot(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Enabling isolated sdcard boot mode\n");
+	device.isolated_sdcard = true;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_disable_isolated_sdcard_boot(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Disabling isolated sdcard boot mode\n");
+	device.isolated_sdcard = false;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
 void cmd_oem_select_display_panel(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Selecting display panel %s\n", arg);
@@ -2193,6 +2211,8 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	snprintf(response, sizeof(response), "\tCharging in bootloader enabled: %s", (device.charging_enabled ? "true" : "false"));
 	fastboot_info(response);
 	snprintf(response, sizeof(response), "\tDisplay panel: %s", (device.display_panel));
+	fastboot_info(response);
+	snprintf(response, sizeof(response), "\tIsolated sdcard boot mode enabled: %s", (device.isolated_sdcard ? "true" : "false"));
 	fastboot_info(response);
 	fastboot_okay("");
 }
@@ -2451,6 +2471,10 @@ void aboot_fastboot_register_commands(void)
 			cmd_oem_enable_charging);
 	fastboot_register("oem disable-charging",
 			cmd_oem_disable_charging);
+	fastboot_register("oem enable-isolated-sdcard-boot",
+			cmd_oem_enable_isolated_sdcard_boot);
+	fastboot_register("oem disable-isolated-sdcard-boot",
+			cmd_oem_disable_isolated_sdcard_boot);
 	fastboot_register("oem select-display-panel",
 			cmd_oem_select_display_panel);
 	/* publish variables and their values */
@@ -2480,6 +2504,11 @@ void aboot_fastboot_register_commands(void)
 			device.display_panel);
 	fastboot_publish("display-panel",
 			(const char *) panel_display_mode);
+	/* Is the isolated sdcard boot mode enabled */
+	snprintf(isolated_sdcard_enabled, MAX_RSP_SIZE, "%d",
+			device.isolated_sdcard);
+	fastboot_publish("isolated-sdcard-enabled",
+			(const char *) isolated_sdcard_enabled);
 }
 
 void aboot_init(const struct app_descriptor *app)
@@ -2489,10 +2518,10 @@ void aboot_init(const struct app_descriptor *app)
 	struct mmc_device *dev = target_mmc_device();
 
 	if (dev && dev->config.slot == SD_CARD)
-		swap_sdcc = SDCC_SD_EMMC;
+		swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
 
 	if (emmc_health == EMMC_FAILURE)
-		swap_sdcc = SDCC_SD_EMMC;
+		swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
 
 	/* Setup page size information for nv storage */
 	if (target_is_emmc_boot())
