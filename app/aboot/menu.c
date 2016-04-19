@@ -192,8 +192,10 @@ static uint32_t process_menu(struct menu *menu) {
 	struct menu_item *selected = menu->item;
 	move_cursor(selected, selected, LIME, menu->cursor);
 	int timeout = 30 * 1000; // 30 seconds
-	fbcon_acprintf(2, ALIGN_LEFT, BLUE, "  Autoboot in %2d.%d seconds\n", timeout/1000, (timeout%1000)/10 );
-	fbcon_set_font_fg_color(RED);
+	if (autoboot) {
+		fbcon_acprintf(2, ALIGN_LEFT, BLUE, "  Autoboot in %2d.%d seconds\n", timeout/1000, (timeout%1000)/10 );
+		fbcon_set_font_fg_color(RED);
+	}
 	while (timeout > 0) {
 		if (autoboot) {
 			if (timeout%100)
