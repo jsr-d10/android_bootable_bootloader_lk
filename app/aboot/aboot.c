@@ -1288,6 +1288,13 @@ void write_device_info_mmc(device_info *dev)
 	int index = INVALID_PTN;
 	uint32_t blocksize;
 	uint8_t lun = 0;
+	struct mmc_device *mmc_dev = target_mmc_device();
+	int slot = SD_CARD;
+
+	if (mmc_dev)
+		slot = mmc_dev->config.slot;
+
+	target_sdc_init_slot(SD_CARD); // Saving settings to SD_CARD if possible, coz we read them from it
 
 	index = partition_get_index("aboot");
 	ptn = partition_get_offset(index);
@@ -1308,8 +1315,10 @@ void write_device_info_mmc(device_info *dev)
 	if(mmc_write((ptn + size - blocksize), blocksize, (void *)info_buf))
 	{
 		dprintf(CRITICAL, "ERROR: Cannot write device info\n");
+		target_sdc_init_slot(slot);
 		return;
 	}
+	target_sdc_init_slot(slot);
 }
 
 void read_device_info_mmc(device_info *dev)
