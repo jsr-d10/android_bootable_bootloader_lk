@@ -87,7 +87,7 @@ static bool boot_reason_alarm;
 /* Assuming unauthorized kernel image by default */
 static int auth_kernel_img = 0;
 
-static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}, 0, 0};
+static device_info device = {DEVICE_MAGIC, 0, 0, 1, {0}, 0, 0, 0};
 
 /*
  * Right now, we are publishing the info for only
@@ -1355,6 +1355,8 @@ void read_device_info_mmc(device_info *dev)
 		info->charger_screen_enabled = 1;
 		info->charging_enabled = 0;
 		info->isolated_sdcard = 0;
+		info->default_boot_media = BOOT_MEDIA_SD;
+		info->last_boot_media = BOOT_MEDIA_SD;
 
 		write_device_info_mmc(info);
 	}
@@ -2179,6 +2181,37 @@ void cmd_oem_disable_isolated_sdcard_boot(const char *arg, void *data, unsigned 
 	fastboot_okay("");
 }
 
+void cmd_oem_set_default_boot_media_emmc(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Setting default boot media to eMMC\n");
+	device.default_boot_media = BOOT_MEDIA_EMMC;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_set_default_boot_media_sd(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Setting default boot media to SD\n");
+	device.default_boot_media = BOOT_MEDIA_SD;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_set_default_boot_media_last(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Setting default boot media to last used\n");
+	device.default_boot_media = BOOT_MEDIA_LAST;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void set_last_boot_media(int media)
+{
+	dprintf(INFO, "Setting last boot media to %d\n", media);
+	device.last_boot_media = media;
+	write_device_info(&device);
+}
+
 void cmd_oem_select_display_panel(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Selecting display panel %s\n", arg);
@@ -2201,6 +2234,7 @@ void cmd_oem_unlock(const char *arg, void *data, unsigned sz)
 
 void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 {
+	char *boot_media = NULL;
 	char response[128];
 	snprintf(response, sizeof(response), "\tDevice tampered: %s", (device.is_tampered ? "true" : "false"));
 	fastboot_info(response);
@@ -2214,6 +2248,37 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	fastboot_info(response);
 	snprintf(response, sizeof(response), "\tIsolated sdcard boot mode enabled: %s", (device.isolated_sdcard ? "true" : "false"));
 	fastboot_info(response);
+
+	switch (device.default_boot_media) {
+		case BOOT_MEDIA_EMMC:
+			boot_media = "eMMC";
+			break;
+		case BOOT_MEDIA_SD:
+			boot_media = "SD";
+			break;
+		case BOOT_MEDIA_LAST:
+			boot_media = "Last";
+			break;
+		default:
+			break;
+	}
+	snprintf(response, sizeof(response), "\tDefault boot media: %s", boot_media);
+	fastboot_info(response);
+
+	if (device.default_boot_media == BOOT_MEDIA_LAST) {
+		switch (device.last_boot_media) {
+			case BOOT_MEDIA_EMMC:
+				boot_media = "eMMC";
+				break;
+			case BOOT_MEDIA_SD:
+				boot_media = "SD";
+				break;
+			default:
+				break;
+		}
+		snprintf(response, sizeof(response), "\tLast boot media: %s", boot_media);
+		fastboot_info(response);
+	}
 	fastboot_okay("");
 }
 
@@ -2475,6 +2540,12 @@ void aboot_fastboot_register_commands(void)
 			cmd_oem_enable_isolated_sdcard_boot);
 	fastboot_register("oem disable-isolated-sdcard-boot",
 			cmd_oem_disable_isolated_sdcard_boot);
+	fastboot_register("oem set-default-boot-media-emmc",
+			cmd_oem_set_default_boot_media_emmc);
+	fastboot_register("oem set-default-boot-media-sd",
+			cmd_oem_set_default_boot_media_sd);
+	fastboot_register("oem set-default-boot-media-last",
+			cmd_oem_set_default_boot_media_last);
 	fastboot_register("oem select-display-panel",
 			cmd_oem_select_display_panel);
 	/* publish variables and their values */
@@ -2509,6 +2580,38 @@ void aboot_fastboot_register_commands(void)
 			device.isolated_sdcard);
 	fastboot_publish("isolated-sdcard-enabled",
 			(const char *) isolated_sdcard_enabled);
+	char *boot_media = NULL;
+	switch (device.default_boot_media) {
+		case BOOT_MEDIA_EMMC:
+			boot_media = "eMMC";
+			break;
+		case BOOT_MEDIA_SD:
+			boot_media = "SD";
+			break;
+		case BOOT_MEDIA_LAST:
+			boot_media = "Last";
+			break;
+		default:
+			break;
+	}
+	fastboot_publish("default-boot-media",
+			(const char *) boot_media);
+
+	if (strncmp(boot_media, "Last", strlen("Last")) == 0) {
+		char *last_boot_media = NULL;
+		switch (device.last_boot_media) {
+			case BOOT_MEDIA_EMMC:
+				last_boot_media = "eMMC";
+				break;
+			case BOOT_MEDIA_SD:
+				last_boot_media = "SD";
+				break;
+			default:
+				break;
+		}
+		fastboot_publish("last-boot-media",
+				(const char *) last_boot_media);
+	}
 }
 
 void aboot_init(const struct app_descriptor *app)
@@ -2516,9 +2619,6 @@ void aboot_init(const struct app_descriptor *app)
 	unsigned reboot_mode = 0;
 	unsigned hard_reboot_mode = 0;
 	struct mmc_device *dev = target_mmc_device();
-
-	if (dev && dev->config.slot == SD_CARD)
-		swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
 
 	if (emmc_health == EMMC_FAILURE)
 		swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
@@ -2610,6 +2710,29 @@ void aboot_init(const struct app_descriptor *app)
 	if (keys_get_state(KEY_FUNCTION)) {
 		dprintf(CRITICAL,"Boot menu key sequence detected\n");
 		main_menu();
+	} else {
+		int boot_media = device.default_boot_media == BOOT_MEDIA_LAST ? device.last_boot_media : device.default_boot_media;
+		dprintf(SPEW, "boot_media=%d\n", boot_media);
+		switch (boot_media) {
+			case BOOT_MEDIA_EMMC:
+				if (emmc_health != EMMC_FAILURE) {
+					target_sdc_init_slot(EMMC_CARD);
+					if (emmc_health != EMMC_FAILURE) {
+						swap_sdcc = SDCC_EMMC_SD;
+						dprintf(SPEW, "boot_media=eMMC\n");
+						break;
+					}
+				}
+				dprintf(SPEW, "boot_media=FALL!!!\n");
+				// Fall through case on EMMC_FAILURE
+			case BOOT_MEDIA_SD:
+				target_sdc_init_slot(SD_CARD);
+				swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
+				dprintf(SPEW, "boot_media=SD\n");
+				break;
+			default:
+				break;
+		}
 	}
 normal_boot:
 	if (!boot_into_fastboot)

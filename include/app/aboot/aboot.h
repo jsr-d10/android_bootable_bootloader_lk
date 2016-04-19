@@ -154,6 +154,12 @@ enum swap_sdcc_mode {
 	SDCC_SD_ONLY
 };
 
+enum boot_media {
+	BOOT_MEDIA_LAST = 0,
+	BOOT_MEDIA_EMMC,
+	BOOT_MEDIA_SD
+};
+
 extern bool boot_into_fastboot;
 extern uint32_t swap_sdcc;
 
@@ -165,6 +171,11 @@ void cmd_oem_disable_charger_screen(const char *arg, void *data, unsigned size);
 void cmd_oem_enable_charger_screen(const char *arg, void *data, unsigned size);
 void cmd_oem_disable_isolated_sdcard_boot(const char *arg, void *data, unsigned size);
 void cmd_oem_enable_isolated_sdcard_boot(const char *arg, void *data, unsigned size);
+void cmd_oem_set_default_boot_media_emmc(const char *arg, void *data, unsigned size);
+void cmd_oem_set_default_boot_media_sd(const char *arg, void *data, unsigned size);
+void cmd_oem_set_default_boot_media_last(const char *arg, void *data, unsigned size);
+void set_last_boot_media(int media);
+
 void write_device_info(device_info *dev);
 
 #endif // __ABOOT_H

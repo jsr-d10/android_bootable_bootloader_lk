@@ -54,6 +54,7 @@ static struct menu *options_menu(void) {
 	char charger_screen[MAX_ITEM_LEN];
 	char charging_in_bootloader[MAX_ITEM_LEN];
 	char isolated_sdcard_boot[MAX_ITEM_LEN];
+	char default_boot_media[MAX_ITEM_LEN];
 
 	snprintf(charger_screen, MAX_ITEM_LEN, "CHARGER SCREEN:         %s", device->charger_screen_enabled ? "Y" : "N");
 	snprintf(charging_in_bootloader, MAX_ITEM_LEN, "CHARGING IN BOOTLOADER: %s", device->charging_enabled ? "Y" : "N");
@@ -63,6 +64,25 @@ static struct menu *options_menu(void) {
 	add_menu_item(menu, 1, header_line + 3, RED,     charger_screen,         CHARGER_SCREEN_TOGGLE);
 	add_menu_item(menu, 1, header_line + 4, YELLOW,  charging_in_bootloader, CHARGING_TOGGLE);
 	add_menu_item(menu, 1, header_line + 5, FUCHSIA, isolated_sdcard_boot,   ISOLATED_SDCARD_TOGGLE);
+
+	if (emmc_health != EMMC_FAILURE) {
+		char *boot_media = NULL;
+		switch (device->default_boot_media) {
+			case BOOT_MEDIA_LAST:
+				boot_media = "Last";
+				break;
+			case BOOT_MEDIA_EMMC:
+				boot_media = "eMMC";
+				break;
+			case BOOT_MEDIA_SD:
+			default:
+				boot_media = "  SD";
+				break;
+		}
+		snprintf(default_boot_media, MAX_ITEM_LEN, "DEFAULT BOOT MEDIA:  %s", boot_media);
+		add_menu_item(menu, 1, header_line + 6, SILVER,  default_boot_media,     DEFAULT_BOOT_MEDIA_TOGGLE);
+	}
+
 	return menu;
 }
 
@@ -230,6 +250,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case EMMC_BOOT:
 		case EMMC_RECOVERY:
 		case EMMC_FASTBOOT:
+			set_last_boot_media(BOOT_MEDIA_EMMC);
 			if (!(dev && dev->config.slot == EMMC_CARD))
 				target_sdc_init_slot(EMMC_CARD);
 			swap_sdcc = SDCC_EMMC_SD;
@@ -241,6 +262,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			if (!(dev && dev->config.slot == SD_CARD))
 				target_sdc_init_slot(SD_CARD);
 			swap_sdcc = device->isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
+			set_last_boot_media(BOOT_MEDIA_SD);
 			break;
 	}
 
@@ -322,6 +344,25 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 				cmd_oem_disable_isolated_sdcard_boot(NULL, NULL, 0);
 			else
 				cmd_oem_enable_isolated_sdcard_boot(NULL, NULL, 0);
+			destroy_menu(menu);
+			draw_menu(options_menu, 500);
+			break;
+
+		case DEFAULT_BOOT_MEDIA_TOGGLE:
+			switch (device->default_boot_media) {
+				case BOOT_MEDIA_LAST:
+					cmd_oem_set_default_boot_media_emmc(NULL, NULL, 0);
+					break;
+				case BOOT_MEDIA_EMMC:
+					cmd_oem_set_default_boot_media_sd(NULL, NULL, 0);
+					break;
+				case BOOT_MEDIA_SD:
+					cmd_oem_set_default_boot_media_last(NULL, NULL, 0);
+					break;
+				default:
+					cmd_oem_set_default_boot_media_sd(NULL, NULL, 0);
+					break;
+			}
 			destroy_menu(menu);
 			draw_menu(options_menu, 500);
 			break;

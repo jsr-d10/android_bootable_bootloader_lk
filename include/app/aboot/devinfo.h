@@ -45,6 +45,8 @@ struct device_info
 	char display_panel[MAX_PANEL_ID_LEN];
 	bool charging_enabled;
 	bool isolated_sdcard;
+	unsigned default_boot_media;
+	unsigned last_boot_media;
 };
 
 #endif
