@@ -157,4 +157,6 @@ enum swap_sdcc_mode {
 extern bool boot_into_fastboot;
 extern uint32_t swap_sdcc;
 
+device_info *get_device_info(void);
+
 #endif // __ABOOT_H

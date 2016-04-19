@@ -1379,6 +1379,11 @@ void write_device_info_flash(device_info *dev)
 	}
 }
 
+device_info *get_device_info(void)
+{
+	return &device;
+}
+
 void read_device_info_flash(device_info *dev)
 {
 	struct device_info *info = (void*) info_buf;
