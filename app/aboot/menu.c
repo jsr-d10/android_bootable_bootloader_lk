@@ -10,6 +10,7 @@
 #include <sdhci_msm.h>
 
 int sdcard_is_bootable = false;
+int autoboot = true;
 
 static struct menu *boot_menu(void) {
 	struct menu *menu = NULL;
@@ -148,7 +149,18 @@ static void move_cursor(struct menu_item *old, struct menu_item *new, uint32_t c
 static uint32_t process_menu(struct menu *menu) {
 	struct menu_item *selected = menu->item;
 	move_cursor(selected, selected, LIME, menu->cursor);
-	while (1) {
+	int timeout = 30 * 1000; // 30 seconds
+	fbcon_acprintf(2, ALIGN_LEFT, BLUE, "  Autoboot in %2d.%d seconds\n", timeout/1000, (timeout%1000)/10 );
+	fbcon_set_font_fg_color(RED);
+	while (timeout > 0) {
+		if (autoboot) {
+			if (timeout%100)
+			fbcon_set_bg(BLACK, strlen("  Autoboot in "), 2, strlen("30.0"), 1);
+			fbcon_set_cursor_pos(strlen("  Autoboot in "), 2);
+			fbcon_printf("%2d.%1d", timeout/1000, (timeout%1000)/100 );
+		} else {
+			fbcon_set_bg(BLACK, 0, 2, -1, 1);
+		}
 		target_keystatus();
 		if (keys_get_state(KEY_VOLUMEUP)) {
 			wait_vib_timeout();
@@ -156,6 +168,7 @@ static uint32_t process_menu(struct menu *menu) {
 			move_cursor(selected, selected->previous, LIME, menu->cursor);
 			selected=selected->previous;
 			thread_sleep(300);
+			autoboot = false;
 			continue;
 		}
 		if (keys_get_state(KEY_VOLUMEDOWN)) {
@@ -164,16 +177,23 @@ static uint32_t process_menu(struct menu *menu) {
 			move_cursor(selected, selected->next, LIME, menu->cursor);
 			selected=selected->next;
 			thread_sleep(300);
+			autoboot = false;
 			continue;
 		}
 		if (keys_get_state(KEY_POWER)) {
 			wait_vib_timeout();
 			vib_timed_turn_on(400);
 			move_cursor(selected, selected, RED, menu->cursor);
+			autoboot = false;
 			break;
 		}
-		thread_sleep(20);
+		if (autoboot) {
+			thread_sleep(20);
+			timeout -= 40; // This mismatch is not a typo!
+		}
 	}
+	if (autoboot)
+		fbcon_set_bg(BLACK, 0, 2, -1, 1);
 	return selected->type;
 }
 
