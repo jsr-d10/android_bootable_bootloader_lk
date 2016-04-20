@@ -5,7 +5,8 @@
 #define MAX_ITEM_LEN 26
 
 enum item_types {
-	EMMC_BOOT = 0,
+	DEFAULT_ITEM = 0,
+	EMMC_BOOT,
 	EMMC_RECOVERY,
 	EMMC_FASTBOOT,
 	SD_BOOT,
@@ -57,7 +58,7 @@ static struct menu_item *add_menu_item(
 	char *name,
 	enum item_types type);
 
-static void draw_menu(struct menu *menu_function(void), uint32_t delay);
+static void draw_menu(struct menu *menu_function(void), uint32_t delay, int default_selection);
 void main_menu(void);
 
 #endif // __MENU_H

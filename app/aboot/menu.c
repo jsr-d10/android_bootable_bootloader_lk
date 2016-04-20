@@ -188,8 +188,23 @@ static void move_cursor(struct menu_item *old, struct menu_item *new, uint32_t c
 	fbcon_putc(cursor);
 }
 
-static uint32_t process_menu(struct menu *menu) {
+static uint32_t process_menu(struct menu *menu, int default_selection) {
 	struct menu_item *selected = menu->item;
+	int item_found = false;
+	while (true) {
+		if (selected->type == default_selection) {
+			item_found = true;
+			break;
+		} else {
+			selected = selected->next;
+		}
+		if (selected == menu->item) // If we passed full loop through menu items, but item with default_selection type was not found
+			break;
+	}
+
+	if (!item_found)
+		selected = menu->item;
+
 	move_cursor(selected, selected, LIME, menu->cursor);
 	int timeout = 30 * 1000; // 30 seconds
 	if (autoboot) {
@@ -226,7 +241,7 @@ static uint32_t process_menu(struct menu *menu) {
 		}
 		if (keys_get_state(KEY_POWER)) {
 			wait_vib_timeout();
-			vib_timed_turn_on(256);
+			vib_timed_turn_on(400);
 			move_cursor(selected, selected, RED, menu->cursor);
 			autoboot = false;
 			break;
@@ -289,12 +304,12 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 
 		case REBOOT_MENU:
 			destroy_menu(menu);
-			draw_menu(reboot_menu, 500);
+			draw_menu(reboot_menu, 500, DEFAULT_ITEM);
 			break;
 
 		case BOOT_MENU:
 			destroy_menu(menu);
-			draw_menu(boot_menu, 500);
+			draw_menu(boot_menu, 500, DEFAULT_ITEM);
 			break;
 
 		case DLOAD_NORMAL:
@@ -320,7 +335,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 
 		case OPTIONS_MENU:
 			destroy_menu(menu);
-			draw_menu(options_menu, 500);
+			draw_menu(options_menu, 500, DEFAULT_ITEM);
 			break;
 
 		case CHARGER_SCREEN_TOGGLE:
@@ -328,8 +343,6 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 				cmd_oem_disable_charger_screen(NULL, NULL, 0);
 			else
 				cmd_oem_enable_charger_screen(NULL, NULL, 0);
-			destroy_menu(menu);
-			draw_menu(options_menu, 500);
 			break;
 
 		case CHARGING_TOGGLE:
@@ -337,8 +350,6 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 				cmd_oem_disable_charging(NULL, NULL, 0);
 			else
 				cmd_oem_enable_charging(NULL, NULL, 0);
-			destroy_menu(menu);
-			draw_menu(options_menu, 500);
 			break;
 
 		case ISOLATED_SDCARD_TOGGLE:
@@ -346,8 +357,6 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 				cmd_oem_disable_isolated_sdcard_boot(NULL, NULL, 0);
 			else
 				cmd_oem_enable_isolated_sdcard_boot(NULL, NULL, 0);
-			destroy_menu(menu);
-			draw_menu(options_menu, 500);
 			break;
 
 		case DEFAULT_BOOT_MEDIA_TOGGLE:
@@ -365,8 +374,19 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 					cmd_oem_set_default_boot_media_sd(NULL, NULL, 0);
 					break;
 			}
+			break;
+
+		default:
+			break;
+	}
+
+	switch (selection) {
+		case CHARGER_SCREEN_TOGGLE:
+		case CHARGING_TOGGLE:
+		case ISOLATED_SDCARD_TOGGLE:
+		case DEFAULT_BOOT_MEDIA_TOGGLE:
 			destroy_menu(menu);
-			draw_menu(options_menu, 500);
+			draw_menu(options_menu, 500, selection);
 			break;
 
 		default:
@@ -374,11 +394,11 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	}
 }
 
-void draw_menu(struct menu *menu_function(void), uint32_t delay) {
+void draw_menu(struct menu *menu_function(void), uint32_t delay, int default_selection) {
 	struct menu *menu = menu_function();
 	show_menu(menu);
 	thread_sleep(delay);
-	uint32_t selection = process_menu(menu);
+	uint32_t selection = process_menu(menu, default_selection);
 
 	// Hide menu title after selection
 	fbcon_hprint("", BLACK);
@@ -406,5 +426,5 @@ void main_menu(void) {
 	fbcon_print_version();
 	fbcon_set_storage_status(); // We must update storage status to make it visible after display_image_on_screen()
 
-	draw_menu(boot_menu, 0);
+	draw_menu(boot_menu, 0, DEFAULT_ITEM);
 }
