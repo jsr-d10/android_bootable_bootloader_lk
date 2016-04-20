@@ -410,7 +410,7 @@ void heap_init(void)
 	heap_insert_free_chunk(heap_create_free_chunk(theheap.base, theheap.len));
 
 	// dump heap info
-//	heap_dump();
+	heap_dump();
 
 //	dprintf(INFO, "running heap tests\n");
 //	heap_test();
