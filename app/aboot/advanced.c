@@ -45,7 +45,7 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size)
 	if (data_len % buf_size)
 		data_len = (data_len / buf_size) * buf_size;
 
-	ptn = dev->card.capacity + data_len + (block_size * 128);
+	ptn = dev->card.capacity - data_len - (block_size * 128);
 	ptn /= block_size;
 	blk_count = buf_size / block_size;
 	total_count = data_len / buf_size;
