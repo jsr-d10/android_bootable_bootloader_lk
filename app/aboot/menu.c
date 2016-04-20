@@ -7,6 +7,7 @@
 #include "board.h"
 #include <app/aboot/aboot.h>
 #include <app/aboot/menu.h>
+#include <app/aboot/advanced.h>
 #include <sdhci_msm.h>
 
 int sdcard_is_bootable = false;
@@ -29,6 +30,7 @@ static struct menu *boot_menu(void) {
 	}
 	add_menu_item(menu, 1, header_line + C++, PURPLE, "REBOOT MENU =>",  REBOOT_MENU);
 	add_menu_item(menu, 1, header_line + C++, SILVER, "OPTIONS MENU =>", OPTIONS_MENU);
+	add_menu_item(menu, 1, header_line + C++, RED,    "ADVANCED MENU =>", ADVANCED_MENU);
 	return menu;
 }
 
@@ -83,6 +85,21 @@ static struct menu *options_menu(void) {
 		add_menu_item(menu, 1, header_line + 6, SILVER,  default_boot_media,     DEFAULT_BOOT_MEDIA_TOGGLE);
 	}
 
+	return menu;
+}
+
+static struct menu *advanced_menu(void) {
+	struct menu *menu = NULL;
+	int C = 2; //lines Counter
+	menu = create_menu ("Advanced menu", RED, 0x10);
+
+	unsigned header_line = fbcon_get_header_line();
+	add_menu_item(menu, 1, header_line + C++, NAVY,    "BACK TO BOOT MENU =>", BOOT_MENU);
+
+	if (emmc_health != EMMC_FAILURE)
+		add_menu_item(menu, 1, header_line + C++, RED,     "READ SPEED TEST (eMMC)", EMMC_READ_SPEED_TEST);
+	if (sdcard_is_bootable)
+		add_menu_item(menu, 1, header_line + C++, YELLOW,  "READ SPEED TEST (SD)",   SD_READ_SPEED_TEST);
 	return menu;
 }
 
@@ -345,6 +362,11 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			draw_menu(options_menu, 500, DEFAULT_ITEM);
 			break;
 
+		case ADVANCED_MENU:
+			destroy_menu(menu);
+			draw_menu(advanced_menu, 500, DEFAULT_ITEM);
+			break;
+
 		case CHARGER_SCREEN_TOGGLE:
 			if (device->charger_screen_enabled)
 				cmd_oem_disable_charger_screen(NULL, NULL, 0);
@@ -383,6 +405,14 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			}
 			break;
 
+			case EMMC_READ_SPEED_TEST:
+				test_storage_read_speed(EMMC_CARD);
+				break;
+
+			case SD_READ_SPEED_TEST:
+				test_storage_read_speed(SD_CARD);
+				break;
+
 		default:
 			break;
 	}
@@ -394,6 +424,12 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case DEFAULT_BOOT_MEDIA_TOGGLE:
 			destroy_menu(menu);
 			draw_menu(options_menu, 500, selection);
+			break;
+
+		case EMMC_READ_SPEED_TEST:
+		case SD_READ_SPEED_TEST:
+			destroy_menu(menu);
+			draw_menu(advanced_menu, 500, selection);
 			break;
 
 		default:

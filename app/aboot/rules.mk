@@ -8,4 +8,5 @@ OBJS += \
 	$(LOCAL_DIR)/aboot.o \
 	$(LOCAL_DIR)/fastboot.o \
 	$(LOCAL_DIR)/recovery.o \
-	$(LOCAL_DIR)/menu.o
+	$(LOCAL_DIR)/menu.o \
+	$(LOCAL_DIR)/advanced.o
