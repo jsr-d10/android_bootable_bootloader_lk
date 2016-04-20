@@ -1723,6 +1723,7 @@ struct mmc_device *mmc_init(struct mmc_config_data *data)
 
 	mmc_display_csd(&dev->card);
 
+	dev->init_error = 0;
 	dev_idx = data->slot;
 	dev_list[dev_idx] = dev;
 

@@ -270,43 +270,54 @@ int target_sdc_init_slot(int slot)
 	dprintf(CRITICAL, "%s: slot %d, dev=%p\n", __func__, slot, dev);
 	if (dev) {
 		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot);
+		if (dev == mmc_get_dev(MMC_CURRENT_SLOT)) {
+			mmc_set_dev(slot);
+			return (dev->init_error) ? FALSE : TRUE;
+		}
 		mmc_set_dev(slot);
-		return TRUE;
-	}
-
-	config.bus_width = DATA_BUS_WIDTH_8BIT;
-	config.max_clk_rate = MMC_CLK_200MHZ;
-
-	config.slot = slot;
-	config.sdhc_base = mmc_sdhci_base[config.slot - 1];
-	config.pwrctl_base = mmc_pwrctl_base[config.slot - 1];
-	config.pwr_irq     = mmc_sdc_pwrctl_irq[config.slot - 1];
-	config.hs400_support = 0;
-	dev = mmc_init(&config);
-	if (dev) {
-		/*
-		* MMC initialization is complete, read the partition table info
-		*/
-		if (partition_read_table()) {
-			dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
+	} else {
+		config.bus_width     = DATA_BUS_WIDTH_8BIT;
+		config.max_clk_rate  = MMC_CLK_200MHZ;
+		config.slot          = slot;
+		config.sdhc_base     = mmc_sdhci_base[slot - 1];
+		config.pwrctl_base   = mmc_pwrctl_base[slot - 1];
+		config.pwr_irq       = mmc_sdc_pwrctl_irq[slot - 1];
+		config.hs400_support = 0;
+		dev = mmc_init(&config);
+		if (!dev) {
+			dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
 			return FALSE;
 		}
-		if (!target_check_card_for_requied_partitions()) {
-			dprintf(CRITICAL, "%s: slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
-			return FALSE;
-		}
-		dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
-		fbcon_set_storage_status();
-
-		if (dev->config.slot == EMMC_CARD) {
-			// Read serialno from eMMC on first initialization to avoid unncecssary reinitializations of cards
-			unsigned char sn_buf[13];
-			target_serialno(sn_buf);
-		}
-		return TRUE;
 	}
-	dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
-	return FALSE;
+	/*
+	* MMC initialization is complete, read the partition table info
+	*/
+	if (partition_read_table()) {
+		dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
+		dev->init_error = -1;
+		return FALSE;
+	}
+	if (!target_check_card_for_requied_partitions()) {
+		dprintf(CRITICAL, "%s: slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
+		dev->init_error = -2;
+		return FALSE;
+	}
+	dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
+	fbcon_set_storage_status();
+
+	if (dev->config.slot == EMMC_CARD) {
+		// Read serialno from eMMC on first initialization to avoid unncecssary reinitializations of cards
+		unsigned char sn_buf[13];
+		target_serialno(sn_buf);
+	}
+	return TRUE;
+}
+
+void * target_sdc_init_dev(int slot)
+{
+	if (target_sdc_init_slot(slot))
+		return target_mmc_device();
+	return NULL;
 }
 
 void target_sdc_init(void)
