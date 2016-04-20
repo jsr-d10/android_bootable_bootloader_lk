@@ -127,15 +127,32 @@ void test_storage_read_speed(int storage)
 
 	fbcon_set_bg(BLACK, 0, 2, -1, 1);
 	fbcon_acprintf(2, ALIGN_CENTER, TEAL, "%s: Testing read speed", storage == EMMC_CARD ? "eMMC" : "SD");
-	
+
 	speed = get_storage_speed(4 * MB, 4 * MB); // 4MiB data and 4MiB buffer is best settings for d10f
 	uint32_t KiB = (uint32_t)speed / 1024;
 	uint32_t MiB = KiB / 1024;
 	KiB -= MiB * 1024;
-	
+
+	unsigned color = GREEN;
+	switch (storage) {
+		case EMMC_CARD:
+			if (MiB < 80)
+				color=YELLOW;
+			if (MiB < 72)
+				color=RED;
+			break;
+		case SD_CARD:
+			if (MiB < 20)
+				color=YELLOW;
+			if (MiB < 10)
+				color=RED;
+			break;
+		default:
+			break;
+	}
 	
 	fbcon_set_bg(BLACK, 0, 2, -1, 1);
-	fbcon_acprintf(2, ALIGN_CENTER, TEAL, "%s: Read: %u.%03u MiB/s", storage == EMMC_CARD ? "eMMC" : "SD", MiB, KiB);
+	fbcon_acprintf(2, ALIGN_CENTER, color, "%s: Read: %u.%03u MiB/s", storage == EMMC_CARD ? "eMMC" : "SD", MiB, KiB);
 
 	dprintf(SPEW, "%s: done, speed=%d\n", __func__, speed);
 
