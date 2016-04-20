@@ -638,6 +638,27 @@ static struct desc_entry *sdhci_adma_transfer(struct sdhci_host *host,
 	return adma_addr;
 }
 
+int sdhci_wait_for_cmd(struct sdhci_host *host, uint32_t timeout)
+{
+	uint32_t present_state;
+	uint32_t retry = 0;
+	do {
+		present_state = REG_READ32(host, SDHCI_PRESENT_STATE_REG);
+		/* check if CMD & DAT lines are free */
+		present_state &= SDHCI_STATE_CMD_DAT_MASK;
+
+		if (!present_state)
+			break;
+		udelay(1000);
+		retry++;
+		if (retry == timeout) {
+			dprintf(CRITICAL, "Error: CMD or DAT lines were never freed\n");
+			return -1;
+		}
+	} while(1);
+	return 0;
+}
+
 /*
  * Function: sdhci send command
  * Arg     : Host structure & command stucture
@@ -671,20 +692,8 @@ uint32_t sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 	if (cmd->trans_mode == SDHCI_READ_MODE)
 		ASSERT(IS_CACHE_LINE_ALIGNED(cmd->data.data_ptr));
 
-	do {
-		present_state = REG_READ32(host, SDHCI_PRESENT_STATE_REG);
-		/* check if CMD & DAT lines are free */
-		present_state &= SDHCI_STATE_CMD_DAT_MASK;
-
-		if (!present_state)
-			break;
-		udelay(1000);
-		retry++;
-		if (retry == 10) {
-			dprintf(CRITICAL, "Error: CMD or DAT lines were never freed\n");
-			return 1;
-		}
-	} while(1);
+	if (sdhci_wait_for_cmd(host, 10))
+		return 1;
 
 	switch(cmd->resp_type) {
 		case SDHCI_CMD_RESP_R1:

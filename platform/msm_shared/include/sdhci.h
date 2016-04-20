@@ -364,4 +364,7 @@ uint32_t sdhci_clk_supply(struct sdhci_host *, uint32_t);
 void sdhci_set_uhs_mode(struct sdhci_host *, uint32_t);
 /* API: Soft reset for the controller */
 void sdhci_reset(struct sdhci_host *host, uint8_t mask);
+
+int sdhci_wait_for_cmd(struct sdhci_host *host, uint32_t timeout);
+
 #endif
