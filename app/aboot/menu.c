@@ -406,7 +406,7 @@ void draw_menu(struct menu *menu_function(void), uint32_t delay, int default_sel
 	handle_menu_selection(selection, menu);
 }
 
-void main_menu(void) {
+void main_menu(int boot_media) {
 	struct mmc_device *dev = target_mmc_device();
 	int ret = 0;
 
@@ -426,5 +426,16 @@ void main_menu(void) {
 	fbcon_print_version();
 	fbcon_set_storage_status(); // We must update storage status to make it visible after display_image_on_screen()
 
-	draw_menu(boot_menu, 0, DEFAULT_ITEM);
+	int default_selection = DEFAULT_ITEM;
+	switch (boot_media) {
+		case BOOT_MEDIA_EMMC:
+			default_selection = EMMC_BOOT;
+			break;
+		case BOOT_MEDIA_SD:
+			default_selection = SD_BOOT;
+			break;
+		default:
+			break;
+	}
+	draw_menu(boot_menu, 0, default_selection);
 }

@@ -2633,6 +2633,7 @@ void aboot_init(const struct app_descriptor *app)
 {
 	unsigned reboot_mode = 0;
 	unsigned hard_reboot_mode = 0;
+	int boot_media = BOOT_MEDIA_SD;
 	struct mmc_device *dev = target_mmc_device();
 
 	if (emmc_health == EMMC_FAILURE)
@@ -2721,13 +2722,14 @@ void aboot_init(const struct app_descriptor *app)
 		boot_reason_alarm = true;
 	}
 
+	boot_media = device.default_boot_media == BOOT_MEDIA_LAST ? device.last_boot_media : device.default_boot_media;
+	dprintf(SPEW, "boot_media=%d\n", boot_media);
+
 	// Enter boot menu after all checks to make sure that nobody will redfine user chooice from boot menu
 	if (keys_get_state(KEY_FUNCTION)) {
 		dprintf(CRITICAL,"Boot menu key sequence detected\n");
-		main_menu();
+		main_menu(boot_media);
 	} else {
-		int boot_media = device.default_boot_media == BOOT_MEDIA_LAST ? device.last_boot_media : device.default_boot_media;
-		dprintf(SPEW, "boot_media=%d\n", boot_media);
 		switch (boot_media) {
 			case BOOT_MEDIA_EMMC:
 				if (emmc_health != EMMC_FAILURE) {
