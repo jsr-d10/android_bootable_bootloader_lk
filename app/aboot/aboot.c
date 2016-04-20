@@ -2737,6 +2737,7 @@ void aboot_init(const struct app_descriptor *app)
 					if (emmc_health != EMMC_FAILURE) {
 						swap_sdcc = SDCC_EMMC_SD;
 						dprintf(SPEW, "boot_media=eMMC\n");
+						boot_media = EMMC_CARD;
 						break;
 					}
 				}
@@ -2746,11 +2747,13 @@ void aboot_init(const struct app_descriptor *app)
 				target_sdc_init_slot(SD_CARD);
 				swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
 				dprintf(SPEW, "boot_media=SD\n");
+				boot_media = SD_CARD;
 				break;
 			default:
 				break;
 		}
 	}
+	test_storage_read_speed(boot_media);
 normal_boot:
 	if (!boot_into_fastboot)
 	{
