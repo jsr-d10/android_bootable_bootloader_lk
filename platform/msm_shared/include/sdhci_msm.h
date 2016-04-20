@@ -128,6 +128,8 @@ enum emmc_states
 	EMMC_UNKNOWN
 };
 
+#define MMC_CURRENT_SLOT (-1)
+
 enum card_in_slot
 {
 	EMMC_CARD=1,

@@ -330,4 +330,10 @@ uint32_t mmc_set_clr_power_on_wp_user(struct mmc_device *dev, uint32_t addr, uin
 uint32_t mmc_get_wp_status(struct mmc_device *dev, uint32_t addr, uint8_t *wp_status);
 /* API: Put the mmc card in sleep mode */
 void mmc_put_card_to_sleep(struct mmc_device *dev);
+
+void mmc_put_dev_to_sleep(int slot);
+
+struct mmc_device * mmc_get_dev(int slot);
+struct mmc_device * mmc_set_dev(int slot);
+
 #endif

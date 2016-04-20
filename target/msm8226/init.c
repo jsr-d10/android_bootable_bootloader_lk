@@ -89,8 +89,6 @@ static uint32_t mmc_sdhci_base[] =
 static uint32_t mmc_sdc_pwrctl_irq[] =
 	{ SDCC1_PWRCTL_IRQ, SDCC2_PWRCTL_IRQ, SDCC3_PWRCTL_IRQ };
 
-struct mmc_device *dev;
-
 void target_load_ssd_keystore(void)
 {
 	uint64_t ptn;
@@ -266,11 +264,13 @@ int target_check_card_for_requied_partitions(void)
 int target_sdc_init_slot(int slot)
 {
 	struct mmc_config_data config = {0};
-	struct mmc_device *initialized_dev = NULL;
+	struct mmc_device * dev;
+
+	dev = mmc_get_dev(slot);
 	dprintf(CRITICAL, "%s: slot %d, dev=%p\n", __func__, slot, dev);
-	if (dev->config.slot == slot)
-	{
+	if (dev) {
 		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot);
+		mmc_set_dev(slot);
 		return TRUE;
 	}
 
@@ -282,22 +282,17 @@ int target_sdc_init_slot(int slot)
 	config.pwrctl_base = mmc_pwrctl_base[config.slot - 1];
 	config.pwr_irq     = mmc_sdc_pwrctl_irq[config.slot - 1];
 	config.hs400_support = 0;
-	initialized_dev = mmc_init(&config);
-	if (initialized_dev) {
-		if (dev)
-			mmc_put_card_to_sleep(dev);
-		dev = initialized_dev;
+	dev = mmc_init(&config);
+	if (dev) {
 		/*
 		* MMC initialization is complete, read the partition table info
 		*/
 		if (partition_read_table()) {
 			dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
-			mmc_put_card_to_sleep(initialized_dev);
 			return FALSE;
 		}
 		if (!target_check_card_for_requied_partitions()) {
 			dprintf(CRITICAL, "%s: slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
-			mmc_put_card_to_sleep(initialized_dev);
 			return FALSE;
 		}
 		dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
@@ -317,6 +312,7 @@ int target_sdc_init_slot(int slot)
 void target_sdc_init(void)
 {
 	int ret = FALSE;
+	struct mmc_device * dev;
 	/*
 	 * Set drive strength & pull ctrl for emmc
 	 */
@@ -324,12 +320,14 @@ void target_sdc_init(void)
 
 	/* Trying Slot 2 (SD) first*/
 	ret = target_sdc_init_slot(SD_CARD);
+	dev = target_mmc_device();
 	dprintf(CRITICAL, "target_sdc_init_slot(SD_CARD) returned %d, dev=%p\n", ret, dev);
 
 	if (!dev || !ret) // We need GPT on SD card to be able to boot from it
 	{
 		/* Trying Slot 1 (eMMC) next*/
 		ret = target_sdc_init_slot(EMMC_CARD);
+		dev = target_mmc_device();
 		dprintf(CRITICAL, "target_sdc_init_slot(EMMC_CARD) returned %d, dev=%p\n", ret, dev);
 		if (!dev || !ret) {
 			dprintf(CRITICAL, "mmc init failed!\n");
@@ -529,7 +527,7 @@ void target_uninit(void)
 	/* wait for the vibrator timer is expried */
 	wait_vib_timeout();
 
-	mmc_put_card_to_sleep(dev);
+	mmc_put_dev_to_sleep(-1);
 
 	if (target_is_ssd_enabled())
 		clock_ce_disable(SSD_CE_INSTANCE);
@@ -672,5 +670,5 @@ static void set_sdc_power_ctrl()
 
 void *target_mmc_device()
 {
-	return (void *) dev;
+	return (void *) mmc_get_dev(MMC_CURRENT_SLOT);
 }

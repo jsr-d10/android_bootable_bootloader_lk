@@ -37,6 +37,11 @@
 #include <platform/iomap.h>
 #include <platform/timer.h>
 
+#define MMC_SLOT_MAX 4
+
+static int dev_idx = -1;
+static struct mmc_device * dev_list[MMC_SLOT_MAX] = {0};
+
 extern void clock_init_mmc(uint32_t);
 extern void clock_config_mmc(uint32_t, uint32_t);
 int emmc_retries = 0;
@@ -1640,6 +1645,28 @@ static void mmc_display_csd(struct mmc_card *card)
 	dprintf(SPEW, "temp_wp: %d\n", card->csd.temp_wp);
 }
 
+struct mmc_device * mmc_get_dev(int slot)
+{
+	if (slot >= MMC_SLOT_MAX)
+		return NULL;
+	if (slot < 0) {
+		if (dev_idx < 0)
+			return NULL;
+		return dev_list[dev_idx];
+	}
+	return dev_list[slot];
+}
+
+struct mmc_device * mmc_set_dev(int slot)
+{
+	if (slot < 0 || slot >= MMC_SLOT_MAX) {
+		dev_idx = -1;
+		return NULL;
+	}
+	dev_idx = slot;
+	return dev_list[dev_idx];
+}
+
 /*
  * Function: mmc_init
  * Arg     : MMC configuration data
@@ -1653,6 +1680,14 @@ struct mmc_device *mmc_init(struct mmc_config_data *data)
 {
 	uint8_t mmc_ret = 0;
 	struct mmc_device *dev;
+
+	if (data->slot >= MMC_SLOT_MAX)
+		return NULL;
+
+	if (dev_list[data->slot]) {
+		dev_idx = data->slot;
+		return dev_list[dev_idx];
+	}
 
 	dev = (struct mmc_device *) malloc (sizeof(struct mmc_device));
 
@@ -1687,6 +1722,9 @@ struct mmc_device *mmc_init(struct mmc_config_data *data)
 	dprintf(INFO, "Done initialization of the card\n");
 
 	mmc_display_csd(&dev->card);
+
+	dev_idx = data->slot;
+	dev_list[dev_idx] = dev;
 
 	return dev;
 }
@@ -2259,7 +2297,12 @@ uint32_t mmc_set_clr_power_on_wp_user(struct mmc_device *dev, uint32_t addr, uin
 void mmc_put_card_to_sleep(struct mmc_device *dev)
 {
 	struct mmc_command cmd = {0};
-	struct mmc_card *card = &dev->card;
+	struct mmc_card *card;
+
+	if (!dev)
+		return;
+
+	card = &dev->card;
 
 	cmd.cmd_index = CMD7_SELECT_DESELECT_CARD;
 	cmd.argument = 0x00000000;
@@ -2281,4 +2324,20 @@ void mmc_put_card_to_sleep(struct mmc_device *dev)
 	/* send command */
 	if(sdhci_send_command(&dev->host, &cmd))
 		dprintf(CRITICAL, "card sleep error: %s\n", __func__);
+}
+
+void mmc_put_dev_to_sleep(int slot)
+{
+	int i;
+
+	if (slot >= MMC_SLOT_MAX)
+		return;
+
+	if (slot < 0) {
+		for (i = 0; i < MMC_SLOT_MAX; i++) {
+			mmc_put_card_to_sleep(dev_list[i]);
+		}
+	} else{
+		mmc_put_card_to_sleep(dev_list[slot]);
+	}
 }
