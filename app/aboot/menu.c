@@ -217,8 +217,6 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			fbcon_set_bg(BLACK, strlen("  Autoboot in "), 2, strlen("30.0"), 1);
 			fbcon_set_cursor_pos(strlen("  Autoboot in "), 2);
 			fbcon_printf("%2d.%1d", timeout/1000, (timeout%1000)/100 );
-		} else {
-			fbcon_set_bg(BLACK, 0, 2, -1, 1);
 		}
 		target_keystatus();
 		if (keys_get_state(KEY_VOLUMEUP)) {
@@ -227,7 +225,10 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			move_cursor(selected, selected->previous, LIME, menu->cursor);
 			selected=selected->previous;
 			thread_sleep(300);
-			autoboot = false;
+			if (autoboot) {
+				fbcon_set_bg(BLACK, 0, 2, -1, 1);
+				autoboot = false;
+			}
 			continue;
 		}
 		if (keys_get_state(KEY_VOLUMEDOWN)) {
@@ -236,14 +237,20 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			move_cursor(selected, selected->next, LIME, menu->cursor);
 			selected=selected->next;
 			thread_sleep(300);
-			autoboot = false;
+			if (autoboot) {
+				fbcon_set_bg(BLACK, 0, 2, -1, 1);
+				autoboot = false;
+			}
 			continue;
 		}
 		if (keys_get_state(KEY_POWER)) {
 			wait_vib_timeout();
 			vib_timed_turn_on(400);
 			move_cursor(selected, selected, RED, menu->cursor);
-			autoboot = false;
+			if (autoboot) {
+				fbcon_set_bg(BLACK, 0, 2, -1, 1);
+				autoboot = false;
+			}
 			break;
 		}
 		if (autoboot) {
