@@ -7,12 +7,12 @@
 #include <app/aboot/devinfo.h>
 #include <sdhci_msm.h>
 #include <dev/fbcon.h>
+#include <qtimer.h>
 #include "board.h"
 
-int get_storage_speed(uint32_t data_len, uint32_t buf_size)
+int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 {
 	int ret = 0;
-	int index;
 	uint64_t ptn;
 	uint64_t ptn_size;
 	uint32_t block_size;	
@@ -28,8 +28,8 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size)
 
 	block_size = mmc_get_device_blocksize();
 
-	if (!buf_size)
-		buf_size = 16*1024;
+	if (buf_size < 8*1024)
+		buf_size = 8*1024;
 
 	if (buf_size > SDHCI_ADMA_MAX_TRANS_SZ)
 		buf_size = SDHCI_ADMA_MAX_TRANS_SZ;
@@ -41,32 +41,22 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size)
 	if (!buf)
 		return -2;
 
-	index = partition_get_index("userdata");
-	if (index == INVALID_PTN) {
-		dprintf(CRITICAL, "ERROR: userdata Partition table not found\n");
-		ret = -3;
-		goto exit;
-	}
-	ptn = partition_get_offset(index);
-	if (ptn == 0) {
-		dprintf(CRITICAL, "ERROR: userdata Partition invalid\n");
-		ret = -4;
-		goto exit;
-	}
-	ptn_size = partition_get_size(index);
-	if (ptn_size == 0) {
-		dprintf(CRITICAL, "ERROR: userdata Partition invalid\n");
-		ret = -5;
-		goto exit;
-	}
-
 	if (data_len % buf_size)
 		data_len = (data_len / buf_size) * buf_size;
 
-	ptn = ptn + ptn_size - data_len - (buf_size * 8);
+	ptn = 0;
+	if (dev->card.capacity > data_len) {
+		if (skip_blk < 0) {
+			ptn = dev->card.capacity - data_len;
+		}
+		ptn += skip_blk * block_size;
+	}
 	ptn /= block_size;
 	blk_count = buf_size / block_size;
 	total_count = data_len / buf_size;
+
+	if (sdhci_wait_for_cmd(&dev->host, 10))
+		return -5;
 
 	t0 = qtimer_get_phy_timer_cnt();	
 	while (total_count && !ret) {
@@ -77,12 +67,18 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size)
 	t1 = qtimer_get_phy_timer_cnt();
 
 	if (ret) {
-		dprintf(CRITICAL, "Failed Reading block @ %llux (ret = %d) \n", (ptn * block_size), ret);
+		dprintf(CRITICAL, "Failed Reading block @ %llux (ret = %d) \n", ptn, ret);
 		ret = -6;
 		goto exit;
 	}
 
-	speed = ((uint64_t)data_len * qtimer_tick_rate()) / (t1 - t0);
+	if (t0 > t1) {
+		t0 = (QTMR_PHY_CNT_MAX_VALUE - t0) + t1;
+	} else {
+		t0 = t1 - t0;
+	}
+
+	speed = ((uint64_t)data_len * qtimer_tick_rate()) / t0;
 	if (speed > INT_MAX) {
 		ret = INT_MAX;
 	} else {
@@ -93,7 +89,7 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size)
 	{
 		uint32_t KiB = (uint32_t)speed / 1024;
 		uint32_t MiB = KiB / 1024;
-		uint64_t ms = (t1 - t0) * 1000;
+		uint64_t ms = t0 * 1000;
 		uint64_t us = (ms * 1000) / qtimer_tick_rate();
 		ms /= qtimer_tick_rate();
 		us -= ms * 1000;
@@ -113,6 +109,9 @@ void test_storage_read_speed(int storage)
 	struct mmc_device *mmc_dev = target_mmc_device();
 	int slot = SD_CARD;
 	int speed = 0;
+	int KiB = 0;
+	int MiB = 0;
+
 	dprintf(SPEW, "%s: entered\n", __func__);
 
 	if (mmc_dev)
@@ -128,17 +127,21 @@ void test_storage_read_speed(int storage)
 	fbcon_set_bg(BLACK, 0, 2, -1, 1);
 	fbcon_acprintf(2, ALIGN_CENTER, TEAL, "%s: Testing read speed", storage == EMMC_CARD ? "eMMC" : "SD");
 
-	speed = get_storage_speed(4 * MB, 4 * MB); // 4MiB data and 4MiB buffer is best settings for d10f
-	uint32_t KiB = (uint32_t)speed / 1024;
-	uint32_t MiB = KiB / 1024;
-	KiB -= MiB * 1024;
+	speed = get_storage_speed(4 * MB, 4 * MB, -128); // 4MiB data and 4MiB buffer is best settings for d10f
+	if (speed >= 0) {
+		KiB = speed / 1024;
+		MiB = KiB / 1024;
+		KiB -= MiB * 1024;
+	} else {
+		MiB = speed;
+	}
 
 	unsigned color = GREEN;
 	switch (storage) {
 		case EMMC_CARD:
-			if (MiB < 80)
+			if (MiB < 50)
 				color=YELLOW;
-			if (MiB < 72)
+			if (MiB < 40)
 				color=RED;
 			break;
 		case SD_CARD:
@@ -152,7 +155,7 @@ void test_storage_read_speed(int storage)
 	}
 	
 	fbcon_set_bg(BLACK, 0, 2, -1, 1);
-	fbcon_acprintf(2, ALIGN_CENTER, color, "%s: Read: %u.%03u MiB/s", storage == EMMC_CARD ? "eMMC" : "SD", MiB, KiB);
+	fbcon_acprintf(2, ALIGN_CENTER, color, "%s: Read: %d.%03d MiB/s", storage == EMMC_CARD ? "eMMC" : "SD", MiB, KiB);
 
 	dprintf(SPEW, "%s: done, speed=%d\n", __func__, speed);
 
