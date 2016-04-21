@@ -270,7 +270,6 @@ void * target_sdc_init_slot(int slot)
 {
 	struct mmc_config_data config = {0};
 	struct mmc_device * dev;
-	struct mmc_device * cur_dev;
 	fbcon_hprint("sdc_init_slot\n", WHITE); thread_sleep(1000);
 
 	if (mmc_dev_idx < EMMC_CARD || mmc_dev_idx >= MMC_SLOT_MAX) {
@@ -280,10 +279,9 @@ void * target_sdc_init_slot(int slot)
 	}
 
 	fbcon_hprint("target_mmc_device\n", WHITE); thread_sleep(1000);
-	cur_dev = target_mmc_device();
 	fbcon_hprint("target_mmc_get_dev\n", WHITE); thread_sleep(1000);
 	dev = target_mmc_get_dev(slot);
-	dprintf(CRITICAL, "%s: slot %d, cur_slot=%d, cur_dev=%p\n", __func__, slot, mmc_dev_idx, cur_dev);
+	dprintf(CRITICAL, "%s: slot %d, cur_slot=%d\n", __func__, slot, mmc_dev_idx);
 
 	if (dev) {
 		fbcon_hprint("already initialized\n", WHITE); thread_sleep(1000);
