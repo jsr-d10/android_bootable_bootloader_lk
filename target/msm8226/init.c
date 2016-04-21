@@ -188,6 +188,7 @@ uint32_t target_power_pressed()
 
 void target_keystatus()
 {
+	static bool initialized = false;
 	keys_init();
 
 	if(target_volume_down_pressed())
@@ -202,23 +203,26 @@ void target_keystatus()
         if(target_power_pressed())
 		keys_post_event(KEY_POWER, 1);
 
-	// Enter 9006 mode on demand as early as possible
-	if (keys_get_state(KEY_FUNCTION) && keys_get_state(KEY_VOLUMEDOWN)) {
-		dprintf(ALWAYS,"Normal dload mode (9006) key sequence detected\n");
-		platform_halt();
-	}
-
-	// Enter 9008 mode on demand as early as possible
-	if (keys_get_state(KEY_VOLUMEUP) && keys_get_state(KEY_VOLUMEDOWN))
-	{
-		dprintf(ALWAYS,"Emergency dload mode (9008) key sequence detected\n");
-		if (set_download_mode(EMERGENCY_DLOAD)) {
-			dprintf(CRITICAL,"dload mode not supported by target\n");
-		} else {
-			reboot_device(DLOAD);
-			dprintf(CRITICAL,"Failed to reboot into dload mode\n");
+	if (!initialized) {
+		// Enter 9006 mode on demand as early as possible
+		if (keys_get_state(KEY_FUNCTION) && keys_get_state(KEY_VOLUMEDOWN)) {
+			dprintf(ALWAYS,"Normal dload mode (9006) key sequence detected\n");
+			platform_halt();
 		}
-		boot_into_fastboot_set(true); // Should not reach here if reboot_device(DLOAD) successed
+
+		// Enter 9008 mode on demand as early as possible
+		if (keys_get_state(KEY_VOLUMEUP) && keys_get_state(KEY_VOLUMEDOWN))
+		{
+			dprintf(ALWAYS,"Emergency dload mode (9008) key sequence detected\n");
+			if (set_download_mode(EMERGENCY_DLOAD)) {
+				dprintf(CRITICAL,"dload mode not supported by target\n");
+			} else {
+				reboot_device(DLOAD);
+				dprintf(CRITICAL,"Failed to reboot into dload mode\n");
+			}
+			boot_into_fastboot_set(true); // Should not reach here if reboot_device(DLOAD) successed
+		}
+		initialized = true;
 	}
 
 }
