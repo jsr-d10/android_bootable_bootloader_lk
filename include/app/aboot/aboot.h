@@ -160,7 +160,9 @@ enum boot_media {
 	BOOT_MEDIA_SD
 };
 
-extern bool boot_into_fastboot;
+bool boot_into_fastboot_get(void);
+void boot_into_fastboot_set(bool flag);
+
 extern uint32_t swap_sdcc;
 
 device_info *get_device_info(void);

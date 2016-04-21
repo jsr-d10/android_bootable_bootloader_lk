@@ -79,7 +79,7 @@ static unsigned page_size = 0;
 static unsigned page_mask = 0;
 static char ffbm_mode_string[FFBM_MODE_BUF_SIZE];
 static bool boot_into_ffbm;
-bool boot_into_fastboot = false;
+static bool boot_into_fastboot = false;
 uint32_t swap_sdcc = SDCC_EMMC_SD;
 static char target_boot_params[64];
 static bool boot_reason_alarm;
@@ -116,6 +116,16 @@ char isolated_sdcard_enabled[MAX_RSP_SIZE];
 char sn_buf[13];
 char display_panel_buf[MAX_PANEL_BUF_SIZE];
 char panel_display_mode[MAX_RSP_SIZE];
+
+bool boot_into_fastboot_get(void)
+{
+	return boot_into_fastboot;
+}
+
+void boot_into_fastboot_set(bool flag)
+{
+	boot_into_fastboot = flag;
+}
 
 static void update_ker_tags_rdisk_addr(struct boot_img_hdr *hdr)
 {
@@ -2695,15 +2705,15 @@ void aboot_init(const struct app_descriptor *app)
 			reboot_device(DLOAD);
 			dprintf(CRITICAL,"Failed to reboot into dload mode\n");
 		}
-		boot_into_fastboot = true;
+		boot_into_fastboot_set(true);
 	}
-	if (!boot_into_fastboot)
+	if (!boot_into_fastboot_get())
 	{
 		if (keys_get_state(KEY_HOME) || keys_get_state(KEY_VOLUMEUP))
 			boot_into_recovery = 1;
 		if (!boot_into_recovery &&
 			(keys_get_state(KEY_BACK) || keys_get_state(KEY_VOLUMEDOWN)))
-			boot_into_fastboot = true;
+			boot_into_fastboot_set(true);
 	}
 	#if NO_KEYPAD_DRIVER
 	if (fastboot_trigger())
@@ -2717,7 +2727,7 @@ void aboot_init(const struct app_descriptor *app)
 		boot_into_recovery = 1;
 	} else if(reboot_mode == FASTBOOT_MODE ||
 		hard_reboot_mode == FASTBOOT_HARD_RESET_MODE) {
-		boot_into_fastboot = true;
+		boot_into_fastboot_set(true);
 	} else if(reboot_mode == ALARM_BOOT) {
 		boot_reason_alarm = true;
 	}
@@ -2755,7 +2765,7 @@ void aboot_init(const struct app_descriptor *app)
 	}
 	test_storage_read_speed(boot_media);
 normal_boot:
-	if (!boot_into_fastboot)
+	if (!boot_into_fastboot_get())
 	{
 		if (target_is_emmc_boot())
 		{

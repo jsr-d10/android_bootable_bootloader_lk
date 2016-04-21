@@ -307,7 +307,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			break;
 	}
 
-	boot_into_fastboot = false;
+	boot_into_fastboot_set(false);
 	boot_into_recovery = 0;
 
 	switch (selection) {
@@ -323,7 +323,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 
 		case EMMC_FASTBOOT:
 		case SD_FASTBOOT:
-			boot_into_fastboot = true;
+			boot_into_fastboot_set(true);
 			break;
 
 		case REBOOT_MENU:
