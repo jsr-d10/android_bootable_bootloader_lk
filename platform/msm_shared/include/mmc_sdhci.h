@@ -88,6 +88,7 @@
 /* Offsets in the ext csd */
 #define MMC_EXT_MMC_BUS_WIDTH                     183
 #define MMC_EXT_MMC_HS_TIMING                     185
+#define MMC_CSD_REV                               192
 #define MMC_DEVICE_TYPE                           196
 #define MMC_EXT_HC_WP_GRP_SIZE                    221
 #define MMC_SEC_COUNT4                            215
@@ -153,6 +154,16 @@
 #define MMC_CLK_200MHZ                            200000000
 #define MMC_CLK_192MHZ                            192000000
 #define MMC_CLK_400MHZ                            400000000
+
+/* EXT_CSD versions */
+#define EXT_CSD_REV_V5_1		8
+#define EXT_CSD_REV_V5_0		7
+#define EXT_CSD_REV_V4_5		6
+#define EXT_CSD_REV_V4_4_1		5
+#define EXT_CSD_REV_V4_3		3
+#define EXT_CSD_REV_V4_2		2
+#define EXT_CSD_REV_V4_1		1
+#define EXT_CSD_REV_V4_0		0
 
 #define MMC_ADDR_OUT_OF_RANGE(resp)              ((resp >> 31) & 0x01)
 

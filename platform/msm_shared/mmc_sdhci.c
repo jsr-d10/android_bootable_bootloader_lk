@@ -305,9 +305,15 @@ static uint32_t mmc_decode_and_save_cid(struct mmc_card *card,
 
 		mmc_cid.prv = UNPACK_BITS(raw_cid, 48, 8, mmc_sizeof);
 		mmc_cid.psn = UNPACK_BITS(raw_cid, 16, 32, mmc_sizeof);
-		mmc_cid.month = UNPACK_BITS(raw_cid, 8, 4, mmc_sizeof);
-		mmc_cid.year = UNPACK_BITS(raw_cid, 12, 4, mmc_sizeof);
+		mmc_cid.month = UNPACK_BITS(raw_cid, 12, 4, mmc_sizeof);
+		mmc_cid.year = UNPACK_BITS(raw_cid, 8, 4, mmc_sizeof);
 		mmc_cid.year += 1997;
+	}
+
+	if (card->ext_csd[MMC_CSD_REV] >= EXT_CSD_REV_V4_5) {
+		/* Adjust production date as per JEDEC JESD84-B451 */
+		if (card->cid.year < 2010)
+			mmc_cid.year += 16;
 	}
 
 	/* save it in card database */
