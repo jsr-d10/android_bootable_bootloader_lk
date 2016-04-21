@@ -1310,11 +1310,8 @@ void write_device_info_mmc(device_info *dev)
 	uint32_t blocksize;
 	uint8_t lun = 0;
 	struct mmc_device *mmc_dev = target_mmc_device();
-	int slot = SD_CARD;
+	int slot = mmc_dev->config.slot;
 	dprintf(SPEW, "%s: entered\n", __func__);
-
-	if (mmc_dev)
-		slot = mmc_dev->config.slot;
 
 	if (!target_sdc_init_slot(SD_CARD)) // Try to save settings to SD_CARD if possible, coz we read them from it
 		target_sdc_init_slot(EMMC_CARD);

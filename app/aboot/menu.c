@@ -292,7 +292,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case EMMC_RECOVERY:
 		case EMMC_FASTBOOT:
 			set_last_boot_media(BOOT_MEDIA_EMMC);
-			if (!(dev && dev->config.slot == EMMC_CARD))
+			if (dev->config.slot != EMMC_CARD)
 				target_sdc_init_slot(EMMC_CARD);
 			swap_sdcc = SDCC_EMMC_SD;
 			break;
@@ -300,7 +300,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case SD_BOOT:
 		case SD_RECOVERY:
 		case SD_FASTBOOT:
-			if (!(dev && dev->config.slot == SD_CARD))
+			if (dev->config.slot != SD_CARD)
 				target_sdc_init_slot(SD_CARD);
 			swap_sdcc = device->isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
 			set_last_boot_media(BOOT_MEDIA_SD);
@@ -453,7 +453,7 @@ void main_menu(int boot_media) {
 	struct mmc_device *dev = target_mmc_device();
 	int ret = 0;
 
-	if (dev && dev->config.slot == SD_CARD) // If we have SD already initialized here - it is bootable
+	if (dev->config.slot == SD_CARD) // If we have SD already initialized here - it is bootable
 		sdcard_is_bootable = true;
 	else if (target_sdc_init_slot(SD_CARD)) // Else let's try to initialize SD now
 		sdcard_is_bootable = true;

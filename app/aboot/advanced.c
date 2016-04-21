@@ -18,13 +18,9 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 	uint32_t block_size;	
 	uint32_t blk_count;
 	uint32_t total_count;
-	struct mmc_device * dev;
+	struct mmc_device * dev = target_mmc_device();
 	void * buf;
 	uint64_t t0, t1, speed;
-
-	dev = target_mmc_device();
-	if (!dev)
-		return -1;
 
 	block_size = mmc_get_device_blocksize();
 
@@ -106,16 +102,13 @@ exit:
 
 void test_storage_read_speed(int storage)
 {
-	struct mmc_device *mmc_dev = target_mmc_device();
-	int slot = SD_CARD;
 	int speed = 0;
 	int KiB = 0;
 	int MiB = 0;
 
 	dprintf(SPEW, "%s: entered\n", __func__);
-
-	if (mmc_dev)
-		slot = mmc_dev->config.slot;
+	struct mmc_device *dev = target_mmc_device();
+	int slot = mmc_dev->config.slot;
 
 	if (!target_sdc_init_slot(storage)) {
 		dprintf(CRITICAL, "%s: Unable to init storage int slot %d\n", __func__, storage);
