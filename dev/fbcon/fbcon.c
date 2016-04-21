@@ -654,3 +654,17 @@ void fbcon_print_version(void)
 	fbcon_set_font_fg_color(prev_fg_color);
 	fbcon_set_font_type(font);
 }
+
+void fbcon_print_init_time(void)
+{
+	uint64_t it = (device_init_time * 1000) / qtimer_tick_rate();
+	unsigned color = GREEN;
+
+	if (it > 2500)
+		color = RED;
+	else if (it > 2200)
+		color = YELLOW;
+
+	fbcon_acprintf(0, ALIGN_RIGHT, color, "INIT: %u          ",
+		       (it > 99999) ? 99999 : (uint32_t)it);
+	}

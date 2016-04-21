@@ -84,4 +84,6 @@ enum boot_device
 	BOOT_UFS=4,
 };
 
+extern uint64_t device_init_time;
+
 #endif

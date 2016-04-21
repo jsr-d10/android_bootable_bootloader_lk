@@ -468,6 +468,7 @@ void main_menu(int boot_media) {
 	fbcon_set_header_line(7);
 	fbcon_print_version();
 	fbcon_set_storage_status(); // We must update storage status to make it visible after display_image_on_screen()
+	fbcon_print_init_time();
 
 	int default_selection = DEFAULT_ITEM;
 	switch (boot_media) {

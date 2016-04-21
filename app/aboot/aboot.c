@@ -75,8 +75,6 @@
 #include "board.h"
 #include "scm.h"
 
-extern uint64_t device_init_time;
-
 static unsigned page_size = 0;
 static unsigned page_mask = 0;
 static char ffbm_mode_string[FFBM_MODE_BUF_SIZE];
@@ -2669,6 +2667,7 @@ void aboot_init(const struct app_descriptor *app)
 	target_display_init(device.display_panel);
 	fbcon_set_font_type(&font_25x57);
 	fbcon_print_version();
+	fbcon_print_init_time();
 	fbcon_set_storage_status(); // We must update storage status to make it visible after display init
 	fbcon_hprint("Starting aboot\n", WHITE);
 	dprintf(SPEW, "Display Init: Done\n");
@@ -2749,11 +2748,7 @@ void aboot_init(const struct app_descriptor *app)
 	}
 
 	{
-		uint64_t it;
 		struct mmc_device *dev = target_mmc_device();
-		it = (device_init_time * 1000) / qtimer_tick_rate();
-		fbcon_acprintf(3, ALIGN_CENTER, GREEN, "Init time: %u ms",
-			(it > 99999) ? 99999 : (uint32_t)it);
 		test_storage_read_speed(dev->config.slot);		
 	}
 
