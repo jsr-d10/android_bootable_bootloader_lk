@@ -40,6 +40,8 @@ extern void *__ctor_end;
 extern int __bss_start;
 extern int _end;
 
+uint64_t device_init_time = 0;
+
 static int bootstrap2(void *arg);
 
 #if (ENABLE_NANDWRITE)
@@ -140,6 +142,7 @@ static int bootstrap2(void *arg)
 	// initialize the target
 	dprintf(SPEW, "initializing target\n");
 	target_init();
+	device_init_time = qtimer_get_phy_timer_cnt();
 
 	dprintf(SPEW, "calling apps_init()\n");
 	apps_init();
