@@ -108,7 +108,7 @@ void test_storage_read_speed(int storage)
 
 	dprintf(SPEW, "%s: entered\n", __func__);
 	struct mmc_device *dev = target_mmc_device();
-	int slot = mmc_dev->config.slot;
+	int slot = dev->config.slot;
 
 	if (!target_sdc_init_slot(storage)) {
 		dprintf(CRITICAL, "%s: Unable to init storage int slot %d\n", __func__, storage);
