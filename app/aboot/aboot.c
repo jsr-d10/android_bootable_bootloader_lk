@@ -43,7 +43,6 @@
 #include <lib/ptable.h>
 #include <dev/keys.h>
 #include <dev/fbcon.h>
-#include <dev/font/font-25x57.h>
 #include <baseband.h>
 #include <target.h>
 #include <mmc.h>
@@ -2655,16 +2654,6 @@ void aboot_init(const struct app_descriptor *app)
 
 	read_device_info(&device);
 
-	/* Display splash screen if enabled */
-#if DISPLAY_SPLASH_SCREEN
-	dprintf(SPEW, "Display Init: Start\n");
-	target_display_init(device.display_panel);
-	fbcon_set_font_type(&font_25x57);
-	fbcon_print_version();
-	fbcon_set_storage_status(); // We must update storage status to make it visible after display init
-	fbcon_hprint("Starting aboot\n", WHITE);
-	dprintf(SPEW, "Display Init: Done\n");
-#endif
 	if(device.charging_enabled) {
 		pm8x41_iusb_max_config(IUSB_MAX_UA);
 		pm8x41_chgr_ctl_enable(TRUE);

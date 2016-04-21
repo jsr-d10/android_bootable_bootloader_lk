@@ -51,6 +51,8 @@
 #include <partition_parser.h>
 #include <shutdown_detect.h>
 #include <vibrator.h>
+#include <dev/fbcon.h>
+#include <dev/font/font-25x57.h>
 
 extern  bool target_use_signed_kernel(void);
 static void set_sdc_power_ctrl(void);
@@ -344,18 +346,25 @@ void target_sdc_init(void)
 	/*
 	 * Set drive strength & pull ctrl for emmc
 	 */
+	fbcon_hprint("target_sdc_init\n", WHITE); thread_sleep(1000);
 	set_sdc_power_ctrl();
+	fbcon_hprint("set_sdc_power_ctrl ok\n", WHITE); thread_sleep(1000);
 
 	/* Trying Slot 2 (SD) first*/
+	fbcon_hprint("init_SD_CARD\n", WHITE); thread_sleep(1000);
 	dev = target_sdc_init_slot(SD_CARD);
+	fbcon_hprint("init_SD_CARD OK\n", WHITE); thread_sleep(1000);
 	dprintf(CRITICAL, "target_sdc_init_slot(SD_CARD) returned dev = %p\n", dev);
 
 	if (!dev) // We need GPT on SD card to be able to boot from it
 	{
 		/* Trying Slot 1 (eMMC) next*/
+		fbcon_hprint("init_EMMC_CARD\n", WHITE); thread_sleep(1000);
 		dev = target_sdc_init_slot(EMMC_CARD);
+		fbcon_hprint("init_EMMC_CARD OK\n", WHITE); thread_sleep(1000);
 		dprintf(CRITICAL, "target_sdc_init_slot(EMMC_CARD) returned dev = %p\n", dev);
 		if (!dev) {
+			fbcon_hprint("init_EMMC_CARD DEVNULL\n", WHITE); thread_sleep(1000);
 			dprintf(CRITICAL, "mmc init failed!\n");
 			ASSERT(0);
 		}
@@ -369,6 +378,16 @@ void target_init(void)
 	spmi_init(PMIC_ARB_CHANNEL_NUM, PMIC_ARB_OWNER_ID);
 
 	target_keystatus();
+	
+#if DISPLAY_SPLASH_SCREEN
+	dprintf(SPEW, "Display Init: Start\n");
+	target_display_init("");
+	fbcon_set_font_type(&font_25x57);
+	fbcon_print_version();
+// 	fbcon_set_storage_status(); // We must update storage status to make it visible after display init
+	dprintf(SPEW, "Display Init: Done\n");
+#endif
+
 
 	target_sdc_init();
 
