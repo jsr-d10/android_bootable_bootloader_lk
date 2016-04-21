@@ -30,6 +30,6 @@
 #ifndef __ADVANCED_H
 #define __ADVANCED_H
 
-void test_storage_read_speed(int storage);
+void test_storage_read_speed(int storage, bool full_scan);
 
 #endif //__ADVANCED_H

@@ -96,10 +96,14 @@ static struct menu *advanced_menu(void) {
 	unsigned header_line = fbcon_get_header_line();
 	add_menu_item(menu, 1, header_line + C++, NAVY,    "BACK TO BOOT MENU =>", BOOT_MENU);
 
-	if (emmc_health != EMMC_FAILURE)
-		add_menu_item(menu, 1, header_line + C++, RED,     "READ SPEED TEST (eMMC)", EMMC_READ_SPEED_TEST);
-	if (sdcard_is_bootable)
-		add_menu_item(menu, 1, header_line + C++, YELLOW,  "READ SPEED TEST (SD)",   SD_READ_SPEED_TEST);
+	if (emmc_health != EMMC_FAILURE) {
+		add_menu_item(menu, 1, header_line + C++, GREEN,  "FAST READ TEST (eMMC)", EMMC_READ_SPEED_TEST);
+		add_menu_item(menu, 1, header_line + C++, LIME,   "FULL READ TEST (eMMC)", FULL_EMMC_READ_SPEED_TEST);
+	}
+	if (sdcard_is_bootable) {
+		add_menu_item(menu, 1, header_line + C++, OLIVE,  "FAST READ TEST (SD)",   SD_READ_SPEED_TEST);
+		add_menu_item(menu, 1, header_line + C++, YELLOW, "FULL READ TEST (SD)",   FULL_SD_READ_SPEED_TEST);
+	}
 	return menu;
 }
 
@@ -405,13 +409,21 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			}
 			break;
 
-			case EMMC_READ_SPEED_TEST:
-				test_storage_read_speed(EMMC_CARD);
-				break;
+		case EMMC_READ_SPEED_TEST:
+			test_storage_read_speed(EMMC_CARD, false);
+			break;
+			
+		case SD_READ_SPEED_TEST:
+			test_storage_read_speed(SD_CARD, false);
+			break;
 
-			case SD_READ_SPEED_TEST:
-				test_storage_read_speed(SD_CARD);
-				break;
+		case FULL_EMMC_READ_SPEED_TEST:
+			test_storage_read_speed(EMMC_CARD, true);
+			break;
+
+		case FULL_SD_READ_SPEED_TEST:
+			test_storage_read_speed(SD_CARD, true);
+			break;
 
 		default:
 			break;
@@ -428,6 +440,8 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 
 		case EMMC_READ_SPEED_TEST:
 		case SD_READ_SPEED_TEST:
+		case FULL_EMMC_READ_SPEED_TEST:
+		case FULL_SD_READ_SPEED_TEST:
 			destroy_menu(menu);
 			draw_menu(advanced_menu, 500, selection);
 			break;

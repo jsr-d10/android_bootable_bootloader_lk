@@ -37,6 +37,9 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 	if (!buf)
 		return -2;
 
+	if (data_len == 0)
+		data_len = dev->card.capacity; // Scan full card
+
 	if (data_len % buf_size)
 		data_len = (data_len / buf_size) * buf_size;
 
@@ -100,7 +103,7 @@ exit:
 	return ret;
 }
 
-void test_storage_read_speed(int storage)
+void test_storage_read_speed(int storage, bool full_scan)
 {
 	int speed = 0;
 	int KiB = 0;
@@ -120,7 +123,13 @@ void test_storage_read_speed(int storage)
 	fbcon_set_bg(BLACK, 0, 2, -1, 1);
 	fbcon_acprintf(2, ALIGN_CENTER, TEAL, "%s: Testing read speed", storage == EMMC_CARD ? "eMMC" : "SD");
 
-	speed = get_storage_speed(4 * MB, 4 * MB, -128); // 4MiB data and 4MiB buffer is best settings for d10f
+	if (full_scan) {
+		fbcon_hprint("Please wait up to 1 hour", GREEN);
+		speed = get_storage_speed(0, 4 * MB, 0);
+	} else {
+		speed = get_storage_speed(4 * MB, 4 * MB, -128); // 4MiB data and 4MiB buffer is best settings for d10f
+	}
+
 	if (speed >= 0) {
 		KiB = speed / 1024;
 		MiB = KiB / 1024;

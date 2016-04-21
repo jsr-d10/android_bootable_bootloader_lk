@@ -2749,7 +2749,7 @@ void aboot_init(const struct app_descriptor *app)
 
 	{
 		struct mmc_device *dev = target_mmc_device();
-		test_storage_read_speed(dev->config.slot);		
+		test_storage_read_speed(dev->config.slot, false);
 	}
 
 normal_boot:
