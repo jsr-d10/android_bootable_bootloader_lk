@@ -91,7 +91,7 @@ static uint32_t mmc_sdhci_base[] =
 static uint32_t mmc_sdc_pwrctl_irq[] =
 	{ SDCC1_PWRCTL_IRQ, SDCC2_PWRCTL_IRQ, SDCC3_PWRCTL_IRQ };
 
-static int mmc_dev_idx = -1;
+static int mmc_dev_idx = EMMC_CARD;
 static struct mmc_device * mmc_dev_list[MMC_SLOT_MAX] = {0}; 
 
 void target_load_ssd_keystore(void)
@@ -273,7 +273,7 @@ void * target_sdc_init_slot(int slot)
 	struct mmc_device * cur_dev;
 
 	if (mmc_dev_idx < EMMC_CARD || mmc_dev_idx >= MMC_SLOT_MAX) {
-		mmc_dev_idx = -1;
+		mmc_dev_idx = EMMC_CARD;
 		return NULL;
 	}
 
@@ -284,7 +284,7 @@ void * target_sdc_init_slot(int slot)
 	if (dev) {
 		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot);
 		if (dev->part_table_loaded <= 0 || dev->part_list_checked <= 0) {
-			mmc_dev_idx = -1;
+			mmc_dev_idx = EMMC_CARD;
 			return NULL;
 		}
 		if (mmc_dev_idx == slot)
@@ -300,7 +300,7 @@ void * target_sdc_init_slot(int slot)
 		dev = mmc_init(&config);
 		if (!dev) {
 			dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
-			mmc_dev_idx = -1;
+			mmc_dev_idx = EMMC_CARD;
 			return NULL;
 		}
 		mmc_dev_list[slot] = dev;
@@ -316,7 +316,7 @@ void * target_sdc_init_slot(int slot)
 	if (partition_read_table()) {
 		dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
 		mmc_put_card_to_sleep(dev);
-		mmc_dev_idx = -1;
+		mmc_dev_idx = EMMC_CARD;
 		return NULL;
 	}
 	dev->part_table_loaded = 1;
@@ -324,19 +324,13 @@ void * target_sdc_init_slot(int slot)
 	if (!target_check_card_for_requied_partitions()) {
 		dprintf(CRITICAL, "%s: slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
 		mmc_put_card_to_sleep(dev);
-		mmc_dev_idx = -1;
+		mmc_dev_idx = EMMC_CARD;
 		return NULL;
 	}
 	dev->part_list_checked = 1;
 
 	dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
 	fbcon_set_storage_status();
-
-	if (dev->config.slot == EMMC_CARD) {
-		// Read serialno from eMMC on first initialization to avoid unncecssary reinitializations of cards
-		unsigned char sn_buf[13];
-		target_serialno(sn_buf);
-	}
 	return dev;
 }
 
@@ -478,25 +472,32 @@ void target_baseband_detect(struct board_data *board)
 
 void target_serialno(unsigned char *buf)
 {
-	static uint32_t serialno = 0;
-	unsigned current_slot = -1;
+	uint32_t serialno = 0;
+	int current_slot = mmc_dev_idx;
+	struct mmc_device *dev;
 
-	struct mmc_device *dev = target_mmc_device();
-	if (dev)
-		current_slot = dev->config.slot;
-
-	if (target_is_emmc_boot() && serialno == 0) {
-		if (emmc_health != EMMC_FAILURE && current_slot != EMMC_CARD) {
-		dprintf(SPEW, "%s: Initializing eMMC to get serialno\n", __func__);
-		target_sdc_init_slot(EMMC_CARD);
-		dev = target_mmc_device();
+	dev = target_mmc_get_dev(EMMC_CARD);
+	if (!dev && !mmc_dev_list[EMMC_CARD]) {
+		dev = target_sdc_init_slot(EMMC_CARD);
+		if (!dev) {
+			dev = target_mmc_get_dev(SD_CARD);
+			if (!dev && !mmc_dev_list[SD_CARD]) {
+				dev = target_sdc_init_slot(SD_CARD);
+				if (!dev) {
+					goto exit;
+				}
+			}
 		}
-		serialno = mmc_get_psn();
+	}
+	if (dev && target_is_emmc_boot()) {
+		serialno = dev->card.cid.psn;
 		dprintf(SPEW, "%s: read serialno %x\n", __func__, serialno);
-		if (dev && dev->config.slot != current_slot) {
-			dprintf(SPEW, "%s: Initializing slot %d back\n", __func__, current_slot);
-			target_sdc_init_slot(current_slot);
-		}
+	}
+
+exit:
+	if (current_slot != mmc_dev_idx) {
+		dprintf(SPEW, "%s: Initializing slot %d back\n", __func__, current_slot);
+		target_sdc_init_slot(current_slot);
 	}
 	snprintf((char *)buf, 13, "%x", serialno);
 }
@@ -726,7 +727,19 @@ void * target_mmc_get_dev(int slot)
 
 void *target_mmc_device()
 {
-	if (mmc_dev_idx < 0 || mmc_dev_idx >= MMC_SLOT_MAX)
-		return NULL;
+	struct mmc_device * dev = NULL;
+
+	if (mmc_dev_list[mmc_dev_idx] == NULL) {
+		if (mmc_dev_list[EMMC_CARD]) {
+			dev = target_sdc_init_slot(EMMC_CARD);
+			if (dev && dev->part_table_loaded > 0)
+				return (void *) dev;
+		}
+		if (mmc_dev_list[SD_CARD]) {
+			dev = target_sdc_init_slot(SD_CARD);
+			if (dev && dev->part_table_loaded > 0)
+				return (void *) dev;
+		}
+	}
 	return (void *) mmc_dev_list[mmc_dev_idx];
 }
