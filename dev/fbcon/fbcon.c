@@ -624,21 +624,24 @@ void fbcon_set_storage_status(void)
 			break;
 	}
 	fbcon_set_bg(BLACK, config->con.max.x - 9, 0, 9, 1);
+
+	int color = GREEN;
 	switch (dev->card.retries) {
 		case 0:
 		case 1:
+		case 2:
 			dprintf(CRITICAL, "%s: Health good, slot=%d, retries=%d\n", __func__, dev->config.slot, dev->card.retries);
-			fbcon_acprint(card_state, 0, ALIGN_RIGHT, GREEN);
 			break;
 		case MMC_MAX_COMMAND_RETRY:
 			dprintf(CRITICAL, "%s: Health failure, slot=%d, retries=%d\n", __func__, dev->config.slot, dev->card.retries);
-			fbcon_acprint(card_state, 0, ALIGN_RIGHT, RED);
+			color = RED;
 			break;
 		default:
 			dprintf(CRITICAL, "%s: Health bad, slot=%d, retries=%d\n", __func__, dev->config.slot, dev->card.retries);
-			fbcon_acprint(card_state, 0, ALIGN_RIGHT, YELLOW);
+			color=YELLOW;
 			break;
 	}
+	fbcon_acprint(card_state, 0, ALIGN_RIGHT, color);
 }
 
 void fbcon_print_version(void)
