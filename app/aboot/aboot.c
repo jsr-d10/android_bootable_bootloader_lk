@@ -2693,20 +2693,6 @@ void aboot_init(const struct app_descriptor *app)
 		goto normal_boot;
 
 	/* Check if we should do something other than booting up */
-	if (keys_get_state(KEY_VOLUMEUP) && keys_get_state(KEY_VOLUMEDOWN))
-	{
-		dprintf(ALWAYS,"dload mode key sequence detected\n");
-		if (set_download_mode(EMERGENCY_DLOAD))
-		{
-			dprintf(CRITICAL,"dload mode not supported by target\n");
-		}
-		else
-		{
-			reboot_device(DLOAD);
-			dprintf(CRITICAL,"Failed to reboot into dload mode\n");
-		}
-		boot_into_fastboot_set(true);
-	}
 	if (!boot_into_fastboot_get())
 	{
 		if (keys_get_state(KEY_HOME) || keys_get_state(KEY_VOLUMEUP))
