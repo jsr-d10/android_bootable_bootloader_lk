@@ -311,6 +311,8 @@ struct mmc_device {
 	struct sdhci_host host;          /* Handle to host controller */
 	struct mmc_card card;            /* Handle to mmc card */
 	struct mmc_config_data config;   /* Handle for the mmc config data */
+	int part_table_loaded;
+	int part_list_checked;
 };
 
 /*

@@ -89,7 +89,8 @@ static uint32_t mmc_sdhci_base[] =
 static uint32_t mmc_sdc_pwrctl_irq[] =
 	{ SDCC1_PWRCTL_IRQ, SDCC2_PWRCTL_IRQ, SDCC3_PWRCTL_IRQ };
 
-struct mmc_device *dev;
+static int mmc_dev_idx = EMMC_CARD;
+static struct mmc_device * mmc_dev_list[MMC_SLOT_MAX] = {0}; 
 
 void target_load_ssd_keystore(void)
 {
@@ -282,75 +283,90 @@ int target_check_card_for_requied_partitions(void)
 	return TRUE;
 }
 
-int target_sdc_init_slot(int slot)
+void * target_sdc_init_slot(int slot)
 {
 	struct mmc_config_data config = {0};
-	struct mmc_device *initialized_dev = NULL;
-	dprintf(CRITICAL, "%s: slot %d, dev=%p\n", __func__, slot, dev);
-	if (dev->config.slot == slot)
-	{
+	struct mmc_device * dev;
+
+	if (mmc_dev_idx < EMMC_CARD || mmc_dev_idx >= MMC_SLOT_MAX) {
+		mmc_dev_idx = EMMC_CARD;
+		return NULL;
+	}
+
+	dev = target_mmc_get_dev(slot);
+	dprintf(CRITICAL, "%s: slot %d, cur_slot=%d\n", __func__, slot, mmc_dev_idx);
+
+	if (dev) {
 		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot);
-		return TRUE;
+		if (dev->part_table_loaded <= 0 || dev->part_list_checked <= 0) {
+			mmc_dev_idx = EMMC_CARD;
+			return NULL;
+		}
+		if (mmc_dev_idx == slot)
+			return dev;
+	} else {
+		config.bus_width     = DATA_BUS_WIDTH_8BIT;
+		config.max_clk_rate  = MMC_CLK_200MHZ;
+		config.slot          = slot;
+		config.sdhc_base     = mmc_sdhci_base[slot - EMMC_CARD];
+		config.pwrctl_base   = mmc_pwrctl_base[slot - EMMC_CARD];
+		config.pwr_irq       = mmc_sdc_pwrctl_irq[slot - EMMC_CARD];
+		config.hs400_support = 0;
+		dev = mmc_init(&config);
+		if (!dev) {
+			dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
+			mmc_dev_idx = EMMC_CARD;
+			return NULL;
+		}
+		mmc_dev_list[slot] = dev;
 	}
 
-	config.bus_width = DATA_BUS_WIDTH_8BIT;
-	config.max_clk_rate = MMC_CLK_200MHZ;
+	mmc_dev_idx = slot;
+	dev->part_table_loaded = 0;
+	dev->part_list_checked = 0;
 
-	config.slot = slot;
-	config.sdhc_base = mmc_sdhci_base[config.slot - 1];
-	config.pwrctl_base = mmc_pwrctl_base[config.slot - 1];
-	config.pwr_irq     = mmc_sdc_pwrctl_irq[config.slot - 1];
-	config.hs400_support = 0;
-	initialized_dev = mmc_init(&config);
-	if (initialized_dev) {
-		if (dev)
-			mmc_put_card_to_sleep(dev);
-		dev = initialized_dev;
-		/*
-		* MMC initialization is complete, read the partition table info
-		*/
-		if (partition_read_table()) {
-			dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
-			mmc_put_card_to_sleep(initialized_dev);
-			return FALSE;
-		}
-		if (!target_check_card_for_requied_partitions()) {
-			dprintf(CRITICAL, "%s: slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
-			mmc_put_card_to_sleep(initialized_dev);
-			return FALSE;
-		}
-		dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
-		fbcon_set_storage_status();
-
-		if (dev->config.slot == EMMC_CARD) {
-			// Read serialno from eMMC on first initialization to avoid unncecssary reinitializations of cards
-			unsigned char sn_buf[13];
-			target_serialno(sn_buf);
-		}
-		return TRUE;
+	/*
+	* MMC initialization is complete, read the partition table info
+	*/
+	if (partition_read_table()) {
+		dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
+		mmc_put_card_to_sleep(dev);
+		mmc_dev_idx = EMMC_CARD;
+		return NULL;
 	}
-	dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
-	return FALSE;
+	dev->part_table_loaded = 1;
+
+	if (!target_check_card_for_requied_partitions()) {
+		dprintf(CRITICAL, "%s: slot %d: Card doesn't contain requied for boot partitions\n", __func__, slot);
+		mmc_put_card_to_sleep(dev);
+		mmc_dev_idx = EMMC_CARD;
+		return NULL;
+	}
+	dev->part_list_checked = 1;
+
+	dprintf(CRITICAL, "%s: slot %d: init successed\n", __func__, slot);
+	fbcon_set_storage_status();
+	return dev;
 }
 
 void target_sdc_init(void)
 {
-	int ret = FALSE;
+	struct mmc_device * dev;
 	/*
 	 * Set drive strength & pull ctrl for emmc
 	 */
 	set_sdc_power_ctrl();
 
 	/* Trying Slot 2 (SD) first*/
-	ret = target_sdc_init_slot(SD_CARD);
-	dprintf(CRITICAL, "target_sdc_init_slot(SD_CARD) returned %d, dev=%p\n", ret, dev);
+	dev = target_sdc_init_slot(SD_CARD);
+	dprintf(CRITICAL, "target_sdc_init_slot(SD_CARD) returned dev = %p\n", dev);
 
-	if (!dev || !ret) // We need GPT on SD card to be able to boot from it
+	if (!dev) // We need GPT on SD card to be able to boot from it
 	{
 		/* Trying Slot 1 (eMMC) next*/
-		ret = target_sdc_init_slot(EMMC_CARD);
-		dprintf(CRITICAL, "target_sdc_init_slot(EMMC_CARD) returned %d, dev=%p\n", ret, dev);
-		if (!dev || !ret) {
+		dev = target_sdc_init_slot(EMMC_CARD);
+		dprintf(CRITICAL, "target_sdc_init_slot(EMMC_CARD) returned dev = %p\n", dev);
+		if (!dev) {
 			dprintf(CRITICAL, "mmc init failed!\n");
 			ASSERT(0);
 		}
@@ -454,25 +470,32 @@ void target_baseband_detect(struct board_data *board)
 
 void target_serialno(unsigned char *buf)
 {
-	static uint32_t serialno = 0;
-	unsigned current_slot = -1;
+	uint32_t serialno = 0;
+	int current_slot = mmc_dev_idx;
+	struct mmc_device *dev;
 
-	struct mmc_device *dev = target_mmc_device();
-	if (dev)
-		current_slot = dev->config.slot;
-
-	if (target_is_emmc_boot() && serialno == 0) {
-		if (emmc_health != EMMC_FAILURE && current_slot != EMMC_CARD) {
-		dprintf(SPEW, "%s: Initializing eMMC to get serialno\n", __func__);
-		target_sdc_init_slot(EMMC_CARD);
-		dev = target_mmc_device();
+	dev = target_mmc_get_dev(EMMC_CARD);
+	if (!dev && !mmc_dev_list[EMMC_CARD]) {
+		dev = target_sdc_init_slot(EMMC_CARD);
+		if (!dev) {
+			dev = target_mmc_get_dev(SD_CARD);
+			if (!dev && !mmc_dev_list[SD_CARD]) {
+				dev = target_sdc_init_slot(SD_CARD);
+				if (!dev) {
+					goto exit;
+				}
+			}
 		}
-		serialno = mmc_get_psn();
+	}
+	if (dev && target_is_emmc_boot()) {
+		serialno = dev->card.cid.psn;
 		dprintf(SPEW, "%s: read serialno %x\n", __func__, serialno);
-		if (dev && dev->config.slot != current_slot) {
-			dprintf(SPEW, "%s: Initializing slot %d back\n", __func__, current_slot);
-			target_sdc_init_slot(current_slot);
-		}
+	}
+
+exit:
+	if (current_slot != mmc_dev_idx) {
+		dprintf(SPEW, "%s: Initializing slot %d back\n", __func__, current_slot);
+		target_sdc_init_slot(current_slot);
 	}
 	snprintf((char *)buf, 13, "%x", serialno);
 }
@@ -545,10 +568,14 @@ void target_usb_stop(void)
 
 void target_uninit(void)
 {
+	int i;
+
 	/* wait for the vibrator timer is expried */
 	wait_vib_timeout();
 
-	mmc_put_card_to_sleep(dev);
+	for (i = 0; i < MMC_SLOT_MAX; i++) {
+		mmc_put_card_to_sleep(mmc_dev_list[i]);
+	}
 
 	if (target_is_ssd_enabled())
 		clock_ce_disable(SSD_CE_INSTANCE);
@@ -689,7 +716,28 @@ static void set_sdc_power_ctrl()
 	tlmm_set_pull_ctrl(sdc1_pull_cfg, ARRAY_SIZE(sdc1_pull_cfg));
 }
 
+void * target_mmc_get_dev(int slot)
+{
+	if (slot < 0 || slot >= MMC_SLOT_MAX)
+		return NULL;
+	return mmc_dev_list[slot];
+}
+
 void *target_mmc_device()
 {
-	return (void *) dev;
+	struct mmc_device * dev = NULL;
+
+	if (mmc_dev_list[mmc_dev_idx] == NULL) {
+		if (mmc_dev_list[EMMC_CARD]) {
+			dev = target_sdc_init_slot(EMMC_CARD);
+			if (dev && dev->part_table_loaded > 0)
+				return (void *) dev;
+		}
+		if (mmc_dev_list[SD_CARD]) {
+			dev = target_sdc_init_slot(SD_CARD);
+			if (dev && dev->part_table_loaded > 0)
+				return (void *) dev;
+		}
+	}
+	return (void *) mmc_dev_list[mmc_dev_idx];
 }
