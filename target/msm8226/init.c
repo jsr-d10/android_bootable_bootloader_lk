@@ -271,20 +271,26 @@ void * target_sdc_init_slot(int slot)
 	struct mmc_config_data config = {0};
 	struct mmc_device * dev;
 	struct mmc_device * cur_dev;
+	fbcon_hprint("sdc_init_slot\n", WHITE); thread_sleep(1000);
 
 	if (mmc_dev_idx < EMMC_CARD || mmc_dev_idx >= MMC_SLOT_MAX) {
 		mmc_dev_idx = EMMC_CARD;
+		fbcon_hprint("mmc_dev_idx bad\n", WHITE); thread_sleep(1000);
 		return NULL;
 	}
 
+	fbcon_hprint("target_mmc_device\n", WHITE); thread_sleep(1000);
 	cur_dev = target_mmc_device();
+	fbcon_hprint("target_mmc_get_dev\n", WHITE); thread_sleep(1000);
 	dev = target_mmc_get_dev(slot);
 	dprintf(CRITICAL, "%s: slot %d, cur_slot=%d, cur_dev=%p\n", __func__, slot, mmc_dev_idx, cur_dev);
 
 	if (dev) {
+		fbcon_hprint("already initialized\n", WHITE); thread_sleep(1000);
 		dprintf(CRITICAL, "%s: slot %d, card already initialized!\n", __func__, slot);
 		if (dev->part_table_loaded <= 0 || dev->part_list_checked <= 0) {
 			mmc_dev_idx = EMMC_CARD;
+			fbcon_hprint("part_table_loaded bad\n", WHITE); thread_sleep(1000);
 			return NULL;
 		}
 		if (mmc_dev_idx == slot)
@@ -297,8 +303,10 @@ void * target_sdc_init_slot(int slot)
 		config.pwrctl_base   = mmc_pwrctl_base[slot - EMMC_CARD];
 		config.pwr_irq       = mmc_sdc_pwrctl_irq[slot - EMMC_CARD];
 		config.hs400_support = 0;
+		fbcon_hprint("calling mmc_init\n", WHITE); thread_sleep(1000);
 		dev = mmc_init(&config);
 		if (!dev) {
+			fbcon_hprint("mmc_init failed\n", WHITE); thread_sleep(1000);
 			dprintf(CRITICAL, "%s: slot %d: Error initializing card\n", __func__, slot);
 			mmc_dev_idx = EMMC_CARD;
 			return NULL;
@@ -313,7 +321,9 @@ void * target_sdc_init_slot(int slot)
 	/*
 	* MMC initialization is complete, read the partition table info
 	*/
+	fbcon_hprint("reading GPT\n", WHITE); thread_sleep(1000);
 	if (partition_read_table()) {
+		fbcon_hprint("GPT read failed\n", WHITE); thread_sleep(1000);
 		dprintf(CRITICAL, "%s: slot %d: Error reading the partition table info from card\n", __func__, slot);
 		mmc_put_card_to_sleep(dev);
 		mmc_dev_idx = EMMC_CARD;
