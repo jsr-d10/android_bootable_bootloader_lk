@@ -2259,7 +2259,12 @@ uint32_t mmc_set_clr_power_on_wp_user(struct mmc_device *dev, uint32_t addr, uin
 void mmc_put_card_to_sleep(struct mmc_device *dev)
 {
 	struct mmc_command cmd = {0};
-	struct mmc_card *card = &dev->card;
+	struct mmc_card *card;
+
+	if (!dev)
+		return;
+
+	card = &dev->card;
 
 	cmd.cmd_index = CMD7_SELECT_DESELECT_CARD;
 	cmd.argument = 0x00000000;

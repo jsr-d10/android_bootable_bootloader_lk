@@ -132,7 +132,9 @@ enum card_in_slot
 {
 	EMMC_CARD=1,
 	SD_CARD,
+	MMC_SLOT_MAX,
 };
+
 extern int emmc_health;
 extern int emmc_retries;
 
