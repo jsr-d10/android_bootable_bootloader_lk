@@ -2644,7 +2644,6 @@ void aboot_init(const struct app_descriptor *app)
 	unsigned reboot_mode = 0;
 	unsigned hard_reboot_mode = 0;
 	int boot_media = BOOT_MEDIA_SD;
-	struct mmc_device *dev = target_mmc_device();
 
 	if (emmc_health == EMMC_FAILURE)
 		swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
@@ -2749,7 +2748,12 @@ void aboot_init(const struct app_descriptor *app)
 				break;
 		}
 	}
-	test_storage_read_speed(boot_media);
+
+	{
+		struct mmc_device *dev = target_mmc_device();
+		test_storage_read_speed(dev->config.slot);
+	}
+
 normal_boot:
 	if (!boot_into_fastboot_get())
 	{
