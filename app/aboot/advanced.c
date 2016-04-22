@@ -93,8 +93,8 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 		ms /= qtimer_tick_rate();
 		us -= ms * 1000;
 		KiB -= MiB * 1024;
-		_dprintf("%s: speed = %u.%03u MB/s , time = %u.%03u ms, data_len = %u, buf_size = %u \n", __func__,
-			MiB, KiB, (uint32_t)ms, (uint32_t)us, data_len, buf_size);
+		_dprintf("%u.%03u MB/s, %u.%03u ms, start = 0x%llx, end = 0x%llx \n",
+			MiB, KiB, (uint32_t)ms, (uint32_t)us, skip_blk, ptn);
 	}
 #endif
 
@@ -127,7 +127,11 @@ void test_storage_read_speed(int storage, bool full_scan)
 		fbcon_hprint("Please wait up to 1 hour", GREEN);
 		speed = get_storage_speed(0, 4 * MB, 0);
 	} else {
-		speed = get_storage_speed(4 * MB, 4 * MB, -128); // 4MiB data and 4MiB buffer is best settings for d10f
+		int offset = 0;
+		while (offset < 16 * 1024 + 16) {
+			speed = get_storage_speed(4 * MB, 4 * MB, 2097152 + offset); // 4MiB data and 4MiB buffer is best settings for d10f
+			offset += 4;
+		}
 	}
 
 	if (speed >= 0) {

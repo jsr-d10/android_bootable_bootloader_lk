@@ -100,7 +100,7 @@ void hexdump8(const void *ptr, size_t len);
 #if WITH_DEBUG_LOG_BUF
 
 #ifndef LK_LOG_BUF_SIZE
-#define LK_LOG_BUF_SIZE    (262144) /* align on 4k */
+#define LK_LOG_BUF_SIZE    (1048576) /* align on 4k */
 #endif
 
 struct lk_log {
