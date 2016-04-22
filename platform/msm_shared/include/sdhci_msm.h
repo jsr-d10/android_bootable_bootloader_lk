@@ -135,6 +135,15 @@ enum card_in_slot
 	MMC_SLOT_MAX,
 };
 
+inline const char * get_slot_name(int slot)
+{
+	if (slot == EMMC_CARD)
+		return "eMMC";
+	if (slot == SD_CARD)
+		return "SD";
+	return "UNK";
+}
+
 extern int emmc_health;
 extern int emmc_retries;
 

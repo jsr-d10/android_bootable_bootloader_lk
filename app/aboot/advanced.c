@@ -13,7 +13,7 @@
 int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 {
 	int ret = 0;
-	uint64_t ptn;
+	uint64_t ptn, lba;
 	uint64_t ptn_size;
 	uint32_t block_size;	
 	uint32_t blk_count;
@@ -57,6 +57,7 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 	if (sdhci_wait_for_cmd(&dev->host, 10))
 		return -5;
 
+	lba = ptn;
 	t0 = qtimer_get_phy_timer_cnt();	
 	while (total_count && !ret) {
 		ret = mmc_sdhci_read(dev, buf, ptn, blk_count);
@@ -66,7 +67,7 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 	t1 = qtimer_get_phy_timer_cnt();
 
 	if (ret) {
-		dprintf(CRITICAL, "Failed Reading block @ %llux (ret = %d) \n", ptn, ret);
+		dprintf(CRITICAL, "Failed Reading block @ 0x%llx (ret = %d) \n", ptn, ret);
 		ret = -6;
 		goto exit;
 	}
@@ -86,15 +87,14 @@ int get_storage_speed(uint32_t data_len, uint32_t buf_size, int64_t skip_blk)
 
 #if DEBUGLEVEL >= SPEW
 	{
-		uint32_t KiB = (uint32_t)speed / 1024;
-		uint32_t MiB = KiB / 1024;
+		uint32_t x = (uint32_t)speed / 1024;
 		uint64_t ms = t0 * 1000;
 		uint64_t us = (ms * 1000) / qtimer_tick_rate();
 		ms /= qtimer_tick_rate();
 		us -= ms * 1000;
-		KiB -= MiB * 1024;
-		_dprintf("%s: speed = %u.%03u MB/s , time = %u.%03u ms, data_len = %u, buf_size = %u \n", __func__,
-			MiB, KiB, (uint32_t)ms, (uint32_t)us, data_len, buf_size);
+		x = (x * 10) / 1024;
+		_dprintf("%s: speed = %u.%u MB/s , time = %u.%03u ms, LBA = 0x%llx, data_len = %u, buf_size = %u \n", __func__,
+			x / 10, x % 10, (uint32_t)ms, (uint32_t)us, lba, data_len, buf_size);
 	}
 #endif
 
@@ -103,11 +103,47 @@ exit:
 	return ret;
 }
 
+unsigned get_color_by_speed(int storage, int speed)
+{
+	switch (storage) {
+		case EMMC_CARD:
+			if (speed < 40 * MB)
+				return RED;
+			if (speed < 50 * MB)
+				return YELLOW;
+			break;
+		case SD_CARD:
+			if (speed < 10 * MB)
+				return RED;
+			if (speed < 20 * MB)
+				return YELLOW;
+			break;
+	}
+	return GREEN;
+}
+
+void print_speed(int line, int storage, int speed)
+{
+	int x, x1, x2;
+
+	fbcon_set_bg(BLACK, 0, line, -1, 1);
+	if (speed > 0) {
+		x = speed / 1024;
+		x = (x * 10) / 1024;
+		x1 = x / 10;
+		x2 = x % 10;
+	} else {
+		x1 = speed;
+		x2 = 0;
+	}
+	fbcon_acprintf(line, ALIGN_CENTER, get_color_by_speed(storage, speed),
+		"%s: Read: %d.%d MiB/s", get_slot_name(storage), x1, x2);
+}
+
 void test_storage_read_speed(int storage, bool full_scan)
 {
 	int speed = 0;
-	int KiB = 0;
-	int MiB = 0;
+	int speed2 = 0;
 
 	dprintf(SPEW, "%s: entered\n", __func__);
 	struct mmc_device *dev = target_mmc_device();
@@ -116,50 +152,27 @@ void test_storage_read_speed(int storage, bool full_scan)
 	if (!target_sdc_init_slot(storage)) {
 		dprintf(CRITICAL, "%s: Unable to init storage int slot %d\n", __func__, storage);
 		fbcon_set_bg(BLACK, 0, 1, -1, 1);
-		fbcon_acprintf(1, ALIGN_CENTER, RED, "%s: Init failed!", storage == EMMC_CARD ? "eMMC" : "SD");
+		fbcon_acprintf(1, ALIGN_CENTER, RED, "%s: Init failed!", get_slot_name(storage));
 		return;
 	}
 
+	fbcon_set_bg(BLACK, 0, 1, -1, 1);
 	fbcon_set_bg(BLACK, 0, 2, -1, 1);
-	fbcon_acprintf(2, ALIGN_CENTER, TEAL, "%s: Testing read speed", storage == EMMC_CARD ? "eMMC" : "SD");
+	fbcon_acprintf(2, ALIGN_CENTER, TEAL, "%s: Testing read speed", get_slot_name(storage));
 
 	if (full_scan) {
-		fbcon_hprint("Please wait up to 1 hour", GREEN);
+		fbcon_hprint("Please wait up to 30 min", GREEN);
 		speed = get_storage_speed(0, 4 * MB, 0);
 	} else {
 		speed = get_storage_speed(4 * MB, 4 * MB, -128); // 4MiB data and 4MiB buffer is best settings for d10f
+		speed2 = get_storage_speed(4 * MB, 4 * MB, -65736);
 	}
 
-	if (speed >= 0) {
-		KiB = speed / 1024;
-		MiB = KiB / 1024;
-		KiB -= MiB * 1024;
-	} else {
-		MiB = speed;
-	}
+	print_speed(2, storage, speed);
+	if (speed2)
+		print_speed(1, storage, speed2);
 
-	unsigned color = GREEN;
-	switch (storage) {
-		case EMMC_CARD:
-			if (MiB < 50)
-				color=YELLOW;
-			if (MiB < 40)
-				color=RED;
-			break;
-		case SD_CARD:
-			if (MiB < 20)
-				color=YELLOW;
-			if (MiB < 10)
-				color=RED;
-			break;
-		default:
-			break;
-	}
-	
-	fbcon_set_bg(BLACK, 0, 2, -1, 1);
-	fbcon_acprintf(2, ALIGN_CENTER, color, "%s: Read: %d.%03d MiB/s", storage == EMMC_CARD ? "eMMC" : "SD", MiB, KiB);
-
-	dprintf(SPEW, "%s: done, speed=%d\n", __func__, speed);
+	dprintf(SPEW, "%s: done, speed=%d, speed2=%d\n", __func__, speed, speed2);
 
 	target_sdc_init_slot(slot);
 
