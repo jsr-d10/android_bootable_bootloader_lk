@@ -9,6 +9,7 @@
 #include <app/aboot/menu.h>
 #include <app/aboot/advanced.h>
 #include <sdhci_msm.h>
+#include <qtimer.h>
 
 int sdcard_is_bootable = false;
 int autoboot = true;
@@ -213,7 +214,7 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 	struct menu_item *selected = menu->item;
 	int item_found = false;
 	bool power_released = false;
-
+	
 	while (true) {
 		if (selected->type == default_selection) {
 			item_found = true;
@@ -235,9 +236,10 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 		fbcon_set_font_fg_color(RED);
 	}
 	while (timeout > 0) {
+		uint64_t t0, t1;
+		t0 = qtimer_get_phy_timer_cnt();
 		if (autoboot) {
 			if (timeout%100 == 0) {
-				dprintf(SPEW, "full timeout redraw: timeout=%d\n", timeout);
 				fbcon_set_bg(BLACK, strlen("  Autoboot in "), 2, strlen("30.0"), 1);
 				fbcon_set_cursor_pos(strlen("  Autoboot in "), 2);
 				fbcon_printf("%2d.%1d", timeout/1000, (timeout%1000)/100 );
@@ -281,9 +283,22 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			}
 			break;
 		}
+
+		uint32_t ticks;
+		t1 = qtimer_get_phy_timer_cnt();
+
+		if (t0 > t1)
+			ticks = (QTMR_PHY_CNT_MAX_VALUE - t0) + t1;
+		else
+			ticks = t1 - t0;
+
+		uint32_t time_ms = ticks * 1000 / qtimer_tick_rate();
+		uint32_t sleep = KEY_SCAN_FREQ - time_ms;
+		dprintf(SPEW, "sleeping %d, spent %d ticks, freq=%d\n", sleep, ticks, qtimer_tick_rate());
+		thread_sleep(sleep);
+
 		if (autoboot) {
-			thread_sleep(20);
-			timeout -= 40; // This mismatch is not a typo!
+			timeout -= KEY_SCAN_FREQ;
 		}
 	}
 	if (autoboot)

@@ -3,6 +3,7 @@
 
 // Maximum menu item title length
 #define MAX_ITEM_LEN 26
+#define KEY_SCAN_FREQ 100
 
 enum item_types {
 	DEFAULT_ITEM = 0,
