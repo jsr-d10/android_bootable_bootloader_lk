@@ -284,7 +284,7 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			break;
 		}
 
-		uint32_t ticks;
+		uint64_t ticks;
 		t1 = qtimer_get_phy_timer_cnt();
 
 		if (t0 > t1)
@@ -292,10 +292,9 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 		else
 			ticks = t1 - t0;
 
-		uint32_t time_ms = ticks * 1000 / qtimer_tick_rate();
-		uint32_t sleep = KEY_SCAN_FREQ - time_ms;
-		dprintf(SPEW, "sleeping %d, spent %d ticks, freq=%d\n", sleep, ticks, qtimer_tick_rate());
-		thread_sleep(sleep);
+		uint64_t time_ms = ticks * 1000 / qtimer_tick_rate();
+		if (time_ms < KEY_SCAN_FREQ)
+			thread_sleep(KEY_SCAN_FREQ - time_ms);
 
 		if (autoboot) {
 			timeout -= KEY_SCAN_FREQ;
