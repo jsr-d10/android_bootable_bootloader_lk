@@ -1030,6 +1030,8 @@ int boot_linux_from_mmc(void)
 unified_boot:
 	if (boot_into_recovery) {
 		fbcon_hprint("Recovery mode\n", BLUE);
+	} else if (target_pause_for_battery_charge() && device.charger_screen_enabled) {
+		fbcon_hprint("Battery charging\n", AQUA);
 	} else {
 		fbcon_hprint("Normal boot\n", LIME);
 	}
