@@ -63,7 +63,7 @@ static struct menu_item *add_menu_item(
 	char *name,
 	enum item_types type);
 
-static void draw_menu(struct menu *menu_function(void), uint32_t delay, int default_selection);
+static void draw_menu(struct menu *menu_function(void), int default_selection);
 void main_menu(int boot_media);
 
 #endif // __MENU_H

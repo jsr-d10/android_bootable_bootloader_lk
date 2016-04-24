@@ -212,6 +212,8 @@ static void move_cursor(struct menu_item *old, struct menu_item *new, uint32_t c
 static uint32_t process_menu(struct menu *menu, int default_selection) {
 	struct menu_item *selected = menu->item;
 	int item_found = false;
+	bool power_released = false;
+
 	while (true) {
 		if (selected->type == default_selection) {
 			item_found = true;
@@ -240,6 +242,9 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			fbcon_printf("%2d.%1d", timeout/1000, (timeout%1000)/100 );
 		}
 		target_keystatus();
+		if (!keys_get_state(KEY_POWER)) {
+			power_released = true;
+		}
 		if (keys_get_state(KEY_VOLUMEUP)) {
 			wait_vib_timeout();
 			vib_timed_turn_on(100);
@@ -264,7 +269,7 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			}
 			continue;
 		}
-		if (keys_get_state(KEY_POWER)) {
+		if (keys_get_state(KEY_POWER) && power_released) {
 			wait_vib_timeout();
 			vib_timed_turn_on(400);
 			move_cursor(selected, selected, RED, menu->cursor);
@@ -332,12 +337,12 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 
 		case REBOOT_MENU:
 			destroy_menu(menu);
-			draw_menu(reboot_menu, 500, DEFAULT_ITEM);
+			draw_menu(reboot_menu, DEFAULT_ITEM);
 			break;
 
 		case BOOT_MENU:
 			destroy_menu(menu);
-			draw_menu(boot_menu, 500, DEFAULT_ITEM);
+			draw_menu(boot_menu, DEFAULT_ITEM);
 			break;
 
 		case DLOAD_NORMAL:
@@ -363,12 +368,12 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 
 		case OPTIONS_MENU:
 			destroy_menu(menu);
-			draw_menu(options_menu, 500, DEFAULT_ITEM);
+			draw_menu(options_menu, DEFAULT_ITEM);
 			break;
 
 		case ADVANCED_MENU:
 			destroy_menu(menu);
-			draw_menu(advanced_menu, 500, DEFAULT_ITEM);
+			draw_menu(advanced_menu, DEFAULT_ITEM);
 			break;
 
 		case CHARGER_SCREEN_TOGGLE:
@@ -435,7 +440,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case ISOLATED_SDCARD_TOGGLE:
 		case DEFAULT_BOOT_MEDIA_TOGGLE:
 			destroy_menu(menu);
-			draw_menu(options_menu, 500, selection);
+			draw_menu(options_menu, selection);
 			break;
 
 		case EMMC_READ_SPEED_TEST:
@@ -443,7 +448,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case FULL_EMMC_READ_SPEED_TEST:
 		case FULL_SD_READ_SPEED_TEST:
 			destroy_menu(menu);
-			draw_menu(advanced_menu, 500, selection);
+			draw_menu(advanced_menu, selection);
 			break;
 
 		default:
@@ -451,10 +456,9 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	}
 }
 
-void draw_menu(struct menu *menu_function(void), uint32_t delay, int default_selection) {
+void draw_menu(struct menu *menu_function(void), int default_selection) {
 	struct menu *menu = menu_function();
 	show_menu(menu);
-	thread_sleep(delay);
 	uint32_t selection = process_menu(menu, default_selection);
 
 	// Hide menu title after selection
@@ -495,5 +499,5 @@ void main_menu(int boot_media) {
 		default:
 			break;
 	}
-	draw_menu(boot_menu, 0, default_selection);
+	draw_menu(boot_menu, default_selection);
 }
