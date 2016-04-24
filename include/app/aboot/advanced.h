@@ -30,6 +30,7 @@
 #ifndef __ADVANCED_H
 #define __ADVANCED_H
 
+#define KEY_SCAN_FREQ (20)
 void test_storage_read_speed(int storage, bool full_scan);
 
 #endif //__ADVANCED_H
