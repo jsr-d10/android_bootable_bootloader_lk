@@ -239,11 +239,12 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 		uint64_t t0, t1;
 		t0 = qtimer_get_phy_timer_cnt();
 		if (autoboot) {
-			if (timeout%100)
-			fbcon_set_bg(BLACK, strlen("  Autoboot in "), 2, strlen("30.0"), 1);
-			fbcon_set_cursor_pos(strlen("  Autoboot in "), 2);
-			fbcon_printf("%2d.%1d", timeout/1000, (timeout%1000)/100 );
-			
+			if (timeout%100 == 0) {
+				dprintf(SPEW, "full timeout redraw: timeout=%d\n", timeout);
+				fbcon_set_bg(BLACK, strlen("  Autoboot in "), 2, strlen("30.0"), 1);
+				fbcon_set_cursor_pos(strlen("  Autoboot in "), 2);
+				fbcon_printf("%2d.%1d", timeout/1000, (timeout%1000)/100 );
+			}
 		}
 		target_keystatus();
 		if (!keys_get_state(KEY_POWER)) {
