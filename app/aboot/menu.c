@@ -9,7 +9,6 @@
 #include <app/aboot/menu.h>
 #include <app/aboot/advanced.h>
 #include <sdhci_msm.h>
-#include <qtimer.h>
 
 int sdcard_is_bootable = false;
 int autoboot = true;
@@ -214,7 +213,7 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 	struct menu_item *selected = menu->item;
 	int item_found = false;
 	bool power_released = false;
-	
+
 	while (true) {
 		if (selected->type == default_selection) {
 			item_found = true;
@@ -236,8 +235,6 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 		fbcon_set_font_fg_color(RED);
 	}
 	while (timeout > 0) {
-		uint64_t t0, t1;
-		t0 = qtimer_get_phy_timer_cnt();
 		if (autoboot) {
 			if (timeout%100 == 0) {
 				dprintf(SPEW, "full timeout redraw: timeout=%d\n", timeout);
@@ -284,19 +281,9 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 			}
 			break;
 		}
-
-		while (true) {
-			uint32_t diff;
-			t1 = qtimer_get_phy_timer_cnt();
-			if (t0 > t1)
-				diff = (QTMR_PHY_CNT_MAX_VALUE - t0) + t1;
-			else
-				diff = t1 - t0;
-			thread_sleep(KEY_SCAN_FREQ - diff);
-		}
-
 		if (autoboot) {
-			timeout -= KEY_SCAN_FREQ;
+			thread_sleep(20);
+			timeout -= 40; // This mismatch is not a typo!
 		}
 	}
 	if (autoboot)
