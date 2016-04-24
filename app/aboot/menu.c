@@ -286,13 +286,13 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 		}
 
 		while (true) {
+			uint32_t diff;
 			t1 = qtimer_get_phy_timer_cnt();
 			if (t0 > t1)
-				t0 = (QTMR_PHY_CNT_MAX_VALUE - t0) + t1;
+				diff = (QTMR_PHY_CNT_MAX_VALUE - t0) + t1;
 			else
-				t0 = t1 - t0;
-			if (t0 >= KEY_SCAN_FREQ)
-				break;
+				diff = t1 - t0;
+			thread_sleep(KEY_SCAN_FREQ - diff);
 		}
 
 		if (autoboot) {
