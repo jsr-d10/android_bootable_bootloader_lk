@@ -70,7 +70,7 @@ static void fbcon_drawglyph(uint8_t * pixels, uint32_t paint, unsigned stride, c
 	stride -= config->con.sym_width;
 	stride *= PXL_SIZE;
 
-	gw = (config->con.font->width / 8) + 1;
+	gw = ((config->con.font->width - 1) / 8) + 1;
 	cc = (uint8_t)c;
 	if (cc < config->con.font->first_char) cc = '?';
 	if (cc > config->con.font->last_char)  cc = '?';
@@ -359,7 +359,7 @@ void fbcon_optimize_font_bitmap(struct raster_font * font)
 	uint8_t * bitmap;
 
 	if (!font->processed) {
-		gw = (font->width / 8) + 1;
+		gw = ((font->width - 1) / 8) + 1;
 		size = font->last_char - font->first_char + 1;
 		size = gw * font->height * size;
 		bitmap = font->bitmap;
