@@ -176,6 +176,8 @@ void cmd_oem_enable_isolated_sdcard_boot(const char *arg, void *data, unsigned s
 void cmd_oem_set_default_boot_media_emmc(const char *arg, void *data, unsigned size);
 void cmd_oem_set_default_boot_media_sd(const char *arg, void *data, unsigned size);
 void cmd_oem_set_default_boot_media_last(const char *arg, void *data, unsigned size);
+void cmd_oem_disable_bootmenu_on_boot(const char *arg, void *data, unsigned size);
+void cmd_oem_enable_bootmenu_on_boot(const char *arg, void *data, unsigned size);
 void set_last_boot_media(int media);
 
 void write_device_info(device_info *dev);

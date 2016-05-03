@@ -96,7 +96,8 @@ static device_info device = {
 	.charging_enabled = false,
 	.isolated_sdcard = false,
 	.default_boot_media = BOOT_MEDIA_SD,
-	.last_boot_media = BOOT_MEDIA_SD
+	.last_boot_media = BOOT_MEDIA_SD,
+	.bootmenu_on_boot = true
 };
 
 /*
@@ -1381,6 +1382,7 @@ void read_device_info_mmc(device_info *dev)
 		info->isolated_sdcard = 0;
 		info->default_boot_media = BOOT_MEDIA_SD;
 		info->last_boot_media = BOOT_MEDIA_SD;
+		info->bootmenu_on_boot = 1;
 
 		write_device_info_mmc(info);
 	}
@@ -2236,6 +2238,22 @@ void set_last_boot_media(int media)
 	write_device_info(&device);
 }
 
+void cmd_oem_enable_bootmenu_on_boot(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Enabling bootmenu on boot\n");
+	device.bootmenu_on_boot = 1;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_disable_bootmenu_on_boot(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Disabling bootmenu on boot\n");
+	device.bootmenu_on_boot = 0;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
 void cmd_oem_select_display_panel(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Selecting display panel %s\n", arg);
@@ -2303,6 +2321,10 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 		snprintf(response, sizeof(response), "\tLast boot media: %s", boot_media);
 		fastboot_info(response);
 	}
+
+	snprintf(response, sizeof(response), "\tShow boot menu on boot: %s", (device.bootmenu_on_boot ? "true" : "false"));
+	fastboot_info(response);
+
 	fastboot_okay("");
 }
 
@@ -2570,6 +2592,10 @@ void aboot_fastboot_register_commands(void)
 			cmd_oem_set_default_boot_media_sd);
 	fastboot_register("oem set-default-boot-media-last",
 			cmd_oem_set_default_boot_media_last);
+	fastboot_register("oem enable-bootmenu-on-boot",
+			cmd_oem_enable_bootmenu_on_boot);
+	fastboot_register("oem disable-bootmenu-on-boot",
+			cmd_oem_disable_bootmenu_on_boot);
 	fastboot_register("oem select-display-panel",
 			cmd_oem_select_display_panel);
 	/* publish variables and their values */
@@ -2636,6 +2662,9 @@ void aboot_fastboot_register_commands(void)
 		fastboot_publish("last-boot-media",
 				(const char *) last_boot_media);
 	}
+	fastboot_publish("bootmenu-on-boot",
+		device.bootmenu_on_boot ? "true" : "false");
+
 }
 
 void aboot_init(const struct app_descriptor *app)
@@ -2723,6 +2752,9 @@ void aboot_init(const struct app_descriptor *app)
 	// Enter boot menu after all checks to make sure that nobody will redfine user chooice from boot menu
 	if (keys_get_state(KEY_FUNCTION)) {
 		dprintf(CRITICAL,"Boot menu key sequence detected\n");
+		main_menu(boot_media);
+	} else if (device.bootmenu_on_boot) {
+		dprintf(CRITICAL,"Showing boot menu on boot\n");
 		main_menu(boot_media);
 	} else {
 		switch (boot_media) {

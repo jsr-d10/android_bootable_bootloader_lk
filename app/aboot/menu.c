@@ -52,21 +52,24 @@ static struct menu *options_menu(void) {
 	device_info *device = get_device_info();
 	unsigned header_line = fbcon_get_header_line();
 	struct menu *menu = NULL;
+	int C = 2; //lines Counter
 	menu = create_menu ("Options menu", SILVER, 0x10);
 
 	char charger_screen[MAX_ITEM_LEN];
 	char charging_in_bootloader[MAX_ITEM_LEN];
 	char isolated_sdcard_boot[MAX_ITEM_LEN];
 	char default_boot_media[MAX_ITEM_LEN];
+	char bootmenu_on_boot[MAX_ITEM_LEN];
 
 	snprintf(charger_screen, MAX_ITEM_LEN, "CHARGER SCREEN:         %s", device->charger_screen_enabled ? "Y" : "N");
 	snprintf(charging_in_bootloader, MAX_ITEM_LEN, "CHARGING IN BOOTLOADER: %s", device->charging_enabled ? "Y" : "N");
 	snprintf(isolated_sdcard_boot, MAX_ITEM_LEN, "ISOLATED SDCARD BOOT:   %s", device->isolated_sdcard ? "Y" : "N");
+	snprintf(bootmenu_on_boot, MAX_ITEM_LEN, "BOOTMENU ON BOOT:       %s", device->bootmenu_on_boot ? "Y" : "N");
 
-	add_menu_item(menu, 1, header_line + 2, NAVY,    "BACK TO BOOT MENU =>",   BOOT_MENU);
-	add_menu_item(menu, 1, header_line + 3, RED,     charger_screen,         CHARGER_SCREEN_TOGGLE);
-	add_menu_item(menu, 1, header_line + 4, YELLOW,  charging_in_bootloader, CHARGING_TOGGLE);
-	add_menu_item(menu, 1, header_line + 5, FUCHSIA, isolated_sdcard_boot,   ISOLATED_SDCARD_TOGGLE);
+	add_menu_item(menu, 1, header_line + C++, NAVY,    "BACK TO BOOT MENU =>",   BOOT_MENU);
+	add_menu_item(menu, 1, header_line + C++, RED,     charger_screen,         CHARGER_SCREEN_TOGGLE);
+	add_menu_item(menu, 1, header_line + C++, YELLOW,  charging_in_bootloader, CHARGING_TOGGLE);
+	add_menu_item(menu, 1, header_line + C++, FUCHSIA, isolated_sdcard_boot,   ISOLATED_SDCARD_TOGGLE);
 
 	if (emmc_health != EMMC_FAILURE) {
 		char *boot_media = NULL;
@@ -83,8 +86,9 @@ static struct menu *options_menu(void) {
 				break;
 		}
 		snprintf(default_boot_media, MAX_ITEM_LEN, "DEFAULT BOOT MEDIA:  %s", boot_media);
-		add_menu_item(menu, 1, header_line + 6, SILVER,  default_boot_media,     DEFAULT_BOOT_MEDIA_TOGGLE);
+		add_menu_item(menu, 1, header_line + C++, SILVER,  default_boot_media,     DEFAULT_BOOT_MEDIA_TOGGLE);
 	}
+	add_menu_item(menu, 1, header_line + C++, OLIVE, bootmenu_on_boot, BOOTMENU_ON_BOOT_TOGGLE);
 
 	return menu;
 }
@@ -230,7 +234,14 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 		selected = menu->item;
 
 	move_cursor(selected, selected, LIME, menu->cursor);
-	int timeout = 30 * 1000; // 30 seconds
+	device_info *device = get_device_info();
+
+	int timeout = 0;
+	if (keys_get_state(KEY_FUNCTION))
+		timeout = 30 * 1000; // 30 seconds
+	else // Bootmenu on boot
+		timeout = 5 * 1000; // 5 seconds
+
 	if (autoboot) {
 		fbcon_acprintf(2, ALIGN_LEFT, BLUE, "  Autoboot in %2d.%d seconds\n", timeout/1000, (timeout%1000)/10 );
 		fbcon_set_font_fg_color(RED);
@@ -430,6 +441,13 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			}
 			break;
 
+		case BOOTMENU_ON_BOOT_TOGGLE:
+			if (device->bootmenu_on_boot)
+				cmd_oem_disable_bootmenu_on_boot(NULL, NULL, 0);
+			else
+				cmd_oem_enable_bootmenu_on_boot(NULL, NULL, 0);
+			break;
+
 		case EMMC_READ_SPEED_TEST:
 			test_storage_read_speed(EMMC_CARD, false);
 			break;
@@ -455,6 +473,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case CHARGING_TOGGLE:
 		case ISOLATED_SDCARD_TOGGLE:
 		case DEFAULT_BOOT_MEDIA_TOGGLE:
+		case BOOTMENU_ON_BOOT_TOGGLE:
 			destroy_menu(menu);
 			draw_menu(options_menu, selection);
 			break;

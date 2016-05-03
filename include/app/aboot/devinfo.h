@@ -47,6 +47,7 @@ struct device_info
 	bool isolated_sdcard;
 	unsigned default_boot_media;
 	unsigned last_boot_media;
+	unsigned bootmenu_on_boot;
 };
 
 #endif
