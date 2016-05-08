@@ -120,6 +120,8 @@ static const char *baseband_dsda2   = " androidboot.baseband=dsda2";
 static const char *baseband_sglte2  = " androidboot.baseband=sglte2";
 static const char *warmboot_cmdline = " qpnp-power-on.warm_boot=1";
 
+static const char *permissive_selinux = " androidboot.selinux=permissive";
+
 struct atag_ptbl_entry
 {
 	char name[16];
@@ -178,6 +180,8 @@ void cmd_oem_set_default_boot_media_sd(const char *arg, void *data, unsigned siz
 void cmd_oem_set_default_boot_media_last(const char *arg, void *data, unsigned size);
 void cmd_oem_disable_bootmenu_on_boot(const char *arg, void *data, unsigned size);
 void cmd_oem_enable_bootmenu_on_boot(const char *arg, void *data, unsigned size);
+void cmd_oem_disable_selinux(const char *arg, void *data, unsigned size);
+void cmd_oem_enable_selinux(const char *arg, void *data, unsigned size);
 void set_last_boot_media(int media);
 
 void write_device_info(device_info *dev);

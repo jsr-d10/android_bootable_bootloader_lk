@@ -97,7 +97,8 @@ static device_info device = {
 	.isolated_sdcard = false,
 	.default_boot_media = BOOT_MEDIA_SD,
 	.last_boot_media = BOOT_MEDIA_SD,
-	.bootmenu_on_boot = true
+	.bootmenu_on_boot = true,
+	.permissive_selinux = false
 };
 
 /*
@@ -292,6 +293,10 @@ unsigned char *update_cmdline(const char * cmdline)
 		cmdline_len += strlen(swap_sdcc_cmdline[swap_sdcc]);
 	}
 
+	if (device.permissive_selinux) {
+		cmdline_len += strlen(permissive_selinux);
+	}
+
 	if (cmdline_len > 0) {
 		const char *src;
 		unsigned char *dst = (unsigned char*) malloc((cmdline_len + 4) & (~3));
@@ -440,8 +445,12 @@ unsigned char *update_cmdline(const char * cmdline)
 			src = target_boot_params;
 			while ((*dst++ = *src++));
 		}
+		if (device.permissive_selinux) {
+			if (have_cmdline) --dst;
+			src = permissive_selinux;
+			while ((*dst++ = *src++));
+		}
 	}
-
 
 	dprintf(INFO, "cmdline: %s\n", cmdline_final);
 	return cmdline_final;
@@ -1383,6 +1392,7 @@ void read_device_info_mmc(device_info *dev)
 		info->default_boot_media = BOOT_MEDIA_SD;
 		info->last_boot_media = BOOT_MEDIA_SD;
 		info->bootmenu_on_boot = 1;
+		info->permissive_selinux = 0;
 
 		write_device_info_mmc(info);
 	}
@@ -2254,6 +2264,22 @@ void cmd_oem_disable_bootmenu_on_boot(const char *arg, void *data, unsigned size
 	fastboot_okay("");
 }
 
+void cmd_oem_enable_permissive_selinux(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Enabling Permissive SELinux\n");
+	device.permissive_selinux = 1;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_disable_permissive_selinux(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Disabling Permissive SELinux\n");
+	device.permissive_selinux = 0;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
 void cmd_oem_select_display_panel(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Selecting display panel %s\n", arg);
@@ -2596,6 +2622,10 @@ void aboot_fastboot_register_commands(void)
 			cmd_oem_enable_bootmenu_on_boot);
 	fastboot_register("oem disable-bootmenu-on-boot",
 			cmd_oem_disable_bootmenu_on_boot);
+	fastboot_register("oem enable-permissive-selinux",
+			cmd_oem_enable_permissive_selinux);
+	fastboot_register("oem disable-permissive-selinux",
+			cmd_oem_disable_permissive_selinux);
 	fastboot_register("oem select-display-panel",
 			cmd_oem_select_display_panel);
 	/* publish variables and their values */
@@ -2664,6 +2694,8 @@ void aboot_fastboot_register_commands(void)
 	}
 	fastboot_publish("bootmenu-on-boot",
 		device.bootmenu_on_boot ? "true" : "false");
+	fastboot_publish("permissive-selinux",
+		device.permissive_selinux ? "true" : "false");
 
 }
 

@@ -48,6 +48,7 @@ struct device_info
 	unsigned default_boot_media;
 	unsigned last_boot_media;
 	unsigned bootmenu_on_boot;
+	unsigned permissive_selinux;
 };
 
 #endif

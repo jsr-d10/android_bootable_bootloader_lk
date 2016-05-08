@@ -60,11 +60,13 @@ static struct menu *options_menu(void) {
 	char isolated_sdcard_boot[MAX_ITEM_LEN];
 	char default_boot_media[MAX_ITEM_LEN];
 	char bootmenu_on_boot[MAX_ITEM_LEN];
+	char permissive_selinux[MAX_ITEM_LEN];
 
 	snprintf(charger_screen, MAX_ITEM_LEN, "CHARGER SCREEN:         %s", device->charger_screen_enabled ? "Y" : "N");
 	snprintf(charging_in_bootloader, MAX_ITEM_LEN, "CHARGING IN BOOTLOADER: %s", device->charging_enabled ? "Y" : "N");
 	snprintf(isolated_sdcard_boot, MAX_ITEM_LEN, "ISOLATED SDCARD BOOT:   %s", device->isolated_sdcard ? "Y" : "N");
 	snprintf(bootmenu_on_boot, MAX_ITEM_LEN, "BOOTMENU ON BOOT:       %s", device->bootmenu_on_boot ? "Y" : "N");
+	snprintf(permissive_selinux, MAX_ITEM_LEN, "PERMISSIVE SELinux:     %s", device->permissive_selinux ? "Y" : "N");
 
 	add_menu_item(menu, 1, header_line + C++, NAVY,    "BACK TO BOOT MENU =>",   BOOT_MENU);
 	add_menu_item(menu, 1, header_line + C++, RED,     charger_screen,         CHARGER_SCREEN_TOGGLE);
@@ -89,6 +91,7 @@ static struct menu *options_menu(void) {
 		add_menu_item(menu, 1, header_line + C++, SILVER,  default_boot_media,     DEFAULT_BOOT_MEDIA_TOGGLE);
 	}
 	add_menu_item(menu, 1, header_line + C++, OLIVE, bootmenu_on_boot, BOOTMENU_ON_BOOT_TOGGLE);
+	add_menu_item(menu, 1, header_line + C++, PURPLE, permissive_selinux, PERMISSIVE_SELINUX_TOGGLE);
 
 	return menu;
 }
@@ -448,6 +451,13 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 				cmd_oem_enable_bootmenu_on_boot(NULL, NULL, 0);
 			break;
 
+		case PERMISSIVE_SELINUX_TOGGLE:
+			if (device->permissive_selinux)
+				cmd_oem_disable_permissive_selinux(NULL, NULL, 0);
+			else
+				cmd_oem_enable_permissive_selinux(NULL, NULL, 0);
+			break;
+
 		case EMMC_READ_SPEED_TEST:
 			test_storage_read_speed(EMMC_CARD, false);
 			break;
@@ -474,6 +484,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case ISOLATED_SDCARD_TOGGLE:
 		case DEFAULT_BOOT_MEDIA_TOGGLE:
 		case BOOTMENU_ON_BOOT_TOGGLE:
+		case PERMISSIVE_SELINUX_TOGGLE:
 			destroy_menu(menu);
 			draw_menu(options_menu, selection);
 			break;
