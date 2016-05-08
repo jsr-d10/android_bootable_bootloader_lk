@@ -60,7 +60,7 @@ else
     fi
     if [ "$flash" = "true" ]; then
         fastboot flash aboot "$build_dir"/../../emmc_appsboot.mbn
-        fastboot reboot bootloader
+        fastboot reboot-bootloader
         exit 0
     fi
 fi
