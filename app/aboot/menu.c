@@ -502,7 +502,7 @@ void draw_menu(struct menu *menu_function(void), int default_selection) {
 	handle_menu_selection(selection, menu);
 }
 
-void main_menu(int boot_media) {
+void main_menu(int boot_media, int reboot_mode, int hard_reboot_mode) {
 	struct mmc_device *dev = target_mmc_device();
 	int ret = 0;
 
@@ -524,15 +524,42 @@ void main_menu(int boot_media) {
 	fbcon_print_init_time();
 
 	int default_selection = DEFAULT_ITEM;
-	switch (boot_media) {
-		case BOOT_MEDIA_EMMC:
-			default_selection = EMMC_BOOT;
-			break;
-		case BOOT_MEDIA_SD:
-			default_selection = SD_BOOT;
-			break;
-		default:
-			break;
+	dprintf(SPEW, "%s: reboot_mode=%x; hard_reboot_mode=%x\n", __func__, reboot_mode, hard_reboot_mode);
+	dprintf(SPEW, "%s: reboot_mode FASTBOOT=%x; reboot_mode RECOVERY=%x\n", __func__, FASTBOOT_MODE, RECOVERY_MODE);
+	dprintf(SPEW, "%s: hard_reboot_mode FASTBOOT=%x; hard_reboot_mode RECOVERY=%x\n\n", __func__, FASTBOOT_HARD_RESET_MODE, RECOVERY_HARD_RESET_MODE);
+	if (reboot_mode == RECOVERY_MODE || hard_reboot_mode == RECOVERY_HARD_RESET_MODE) {
+			switch (boot_media) {
+			case BOOT_MEDIA_EMMC:
+				default_selection = EMMC_RECOVERY;
+				break;
+			case BOOT_MEDIA_SD:
+				default_selection = SD_RECOVERY;
+				break;
+			default:
+				break;
+		}
+	} else if(reboot_mode == FASTBOOT_MODE || hard_reboot_mode == FASTBOOT_HARD_RESET_MODE) {
+			switch (boot_media) {
+			case BOOT_MEDIA_EMMC:
+				default_selection = EMMC_FASTBOOT;
+				break;
+			case BOOT_MEDIA_SD:
+				default_selection = SD_FASTBOOT;
+				break;
+			default:
+				break;
+		}
+	} else {
+			switch (boot_media) {
+			case BOOT_MEDIA_EMMC:
+				default_selection = EMMC_BOOT;
+				break;
+			case BOOT_MEDIA_SD:
+				default_selection = SD_BOOT;
+				break;
+			default:
+				break;
+		}
 	}
 	draw_menu(boot_menu, default_selection);
 }

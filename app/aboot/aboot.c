@@ -2752,10 +2752,10 @@ void aboot_init(const struct app_descriptor *app)
 	// Enter boot menu after all checks to make sure that nobody will redfine user chooice from boot menu
 	if (keys_get_state(KEY_FUNCTION)) {
 		dprintf(CRITICAL,"Boot menu key sequence detected\n");
-		main_menu(boot_media);
+		main_menu(boot_media, reboot_mode, hard_reboot_mode);
 	} else if (device.bootmenu_on_boot) {
 		dprintf(CRITICAL,"Showing boot menu on boot\n");
-		main_menu(boot_media);
+		main_menu(boot_media, reboot_mode, hard_reboot_mode);
 	} else {
 		switch (boot_media) {
 			case BOOT_MEDIA_EMMC:
