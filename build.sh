@@ -13,6 +13,7 @@ print_usage() {
     echo "--flash: flash built binary to device using fastboot flash aboot and reboot device to fastboot"
     echo "--clean: run make clean before building"
     echo "--zip: build flashable Recovery zip after building"
+    echo "--install: build flashable Recovery zip and install it via TWRP"
 }
 
 # Transform long options to short ones
@@ -24,18 +25,20 @@ for arg in "$@"; do
     "--clean") set -- "$@" "-c" ;;
     "--flash") set -- "$@" "-f" ;;
     "--zip") set -- "$@" "-z" ;;
+    "--install") set -- "$@" "-i" ;;
     *)        set -- "$@" "$arg"
   esac
 done
 
 OPTIND=1
-while getopts "hfcbz" opt
+while getopts "hfcbzi" opt
 do
   case "$opt" in
     "b") boot=true ;;
     "c") clean=true ;;
     "f") flash=true ;;
     "z") zip=true ;;
+    "i") zip=true; install=true ;;
     "h") print_usage; exit 0 ;;
     *)   print_usage >&2; exit 1 ;;
   esac
@@ -85,6 +88,18 @@ EOF
         java -Xmx2048m -jar zip_sign/signapk.jar -w zip_sign/testkey.x509.pem zip_sign/testkey.pk8  "$zipname-unsigned"  "$zipname"
         echo "${yellow}$zipname ${green}built${end}"
         rm -rf "/tmp/zip_template/" "$zipname-unsigned"
+    fi
+
+    if [ "$install" = "true" ]; then
+        if ! adb devices|grep recovery; then
+          adb reboot recovery
+        fi
+        until adb devices|grep recovery; do sleep 1; done
+        until adb shell mount|grep /external_sd; do sleep 1; done
+        adb push -p "$zipname" "/external_sd/"
+        adb shell twrp install "/external_sd/$(basename "$zipname")"
+        adb reboot bootloader
+        exit 0
     fi
 
     if [ "$boot" = "true" ]; then
