@@ -61,6 +61,7 @@ static struct menu *options_menu(void) {
 	char default_boot_media[MAX_ITEM_LEN];
 	char bootmenu_on_boot[MAX_ITEM_LEN];
 	char permissive_selinux[MAX_ITEM_LEN];
+	char llcon[MAX_ITEM_LEN];
 
 	snprintf(charger_screen, MAX_ITEM_LEN, "CHARGER SCREEN:         %s", device->charger_screen_enabled ? "Y" : "N");
 	snprintf(charging_in_bootloader, MAX_ITEM_LEN, "CHARGING IN BOOTLOADER: %s", device->charging_enabled ? "Y" : "N");
@@ -92,6 +93,72 @@ static struct menu *options_menu(void) {
 	}
 	add_menu_item(menu, 1, header_line + C++, OLIVE, bootmenu_on_boot, BOOTMENU_ON_BOOT_TOGGLE);
 	add_menu_item(menu, 1, header_line + C++, PURPLE, permissive_selinux, PERMISSIVE_SELINUX_TOGGLE);
+	add_menu_item(menu, 1, header_line + C++, GREEN, "LLCON OPTIONS =>", LLCON_OPTIONS_MENU);
+	return menu;
+}
+
+static struct menu *llcon_options_menu(void) {
+	device_info *device = get_device_info();
+	unsigned header_line = fbcon_get_header_line();
+	struct menu *menu = NULL;
+	int C = 2; //lines Counter
+	menu = create_menu ("LLCON Options", GREEN, 0x10);
+
+	char llcon[MAX_ITEM_LEN];
+	char llcon_wrap[MAX_ITEM_LEN];
+	char llcon_font[MAX_ITEM_LEN];
+	char llcon_color[MAX_ITEM_LEN];
+	char llcon_color_fmt[MAX_ITEM_LEN] = "LLCON FONT COLOR:        ";
+	char bootanimation[MAX_ITEM_LEN];
+	char *llcon_mode = NULL;
+	switch (device->llcon_mode) {
+		case LLCON_DISABLED:
+			llcon_mode = "  OFF";
+			break;
+		case LLCON_SYNC:
+			llcon_mode = " SYNC";
+			break;
+		case LLCON_ASYNC:
+		default:
+			llcon_mode = "ASYNC";
+			break;
+	}
+	snprintf(llcon, MAX_ITEM_LEN, "LLCON:              %s", llcon_mode);
+	snprintf(llcon_wrap, MAX_ITEM_LEN, "LLCON LINE WRAP:        %s", device->llcon_wrap ? "Y" : "N");
+	int offset = strlen(llcon_color_fmt) - strlen(fbcon_get_color_name(device->llcon_color));
+	strncpy(llcon_color_fmt+offset, "%s", strlen("%s"));
+	snprintf(llcon_color, MAX_ITEM_LEN, llcon_color_fmt, fbcon_get_color_name(device->llcon_color));
+
+	char *llcon_font_size = NULL;
+	switch (device->llcon_font) {
+		case LLCON_FONT_6x11:
+			llcon_font_size = " 6x11";
+			break;
+		case LLCON_FONT_8x16:
+			llcon_font_size = " 8x16";
+			break;
+		case LLCON_FONT_10x18:
+			llcon_font_size = "10x18";
+			break;
+		case LLCON_FONT_12x22:
+			llcon_font_size = "12x22";
+			break;
+		default:
+			llcon_font_size = " 6x11";
+			break;
+	}
+	snprintf(llcon_font, MAX_ITEM_LEN, "LLCON FONT SIZE:    %s", llcon_font_size);
+
+	add_menu_item(menu, 1, header_line + C++, SILVER, "BACK TO OPTIONS MENU =>", OPTIONS_MENU);
+	add_menu_item(menu, 1, header_line + C++, LIME, llcon, LLCON_TOGGLE);
+	if (device->llcon_mode != LLCON_DISABLED) {
+		add_menu_item(menu, 1, header_line + C++, GREEN, llcon_wrap, LLCON_WRAP_TOGGLE);
+		add_menu_item(menu, 1, header_line + C++, WHITE, llcon_font, LLCON_FONT_TOGGLE);
+		if (device->llcon_color == BLACK)
+			cmd_oem_set_llcon_font_color(" WHITE", NULL, 0);
+		add_menu_item(menu, 1, header_line + C, device->llcon_color, llcon_color, LLCON_COLOR_TOGGLE);
+// 		add_menu_item(menu, 1, header_line + C++, GREEN, bootanimation, BOOTANIMATION_TOGGLE);
+	}
 
 	return menu;
 }
@@ -349,6 +416,8 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	boot_into_fastboot_set(false);
 	boot_into_recovery = 0;
 
+	char *llcon_font = " 6x11";
+	char *font_color = " WHITE";
 	switch (selection) {
 		case EMMC_BOOT:
 		case SD_BOOT:
@@ -458,6 +527,92 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 				cmd_oem_enable_permissive_selinux(NULL, NULL, 0);
 			break;
 
+		case LLCON_OPTIONS_MENU:
+			destroy_menu(menu);
+			draw_menu(llcon_options_menu, DEFAULT_ITEM);
+			break;
+
+		case LLCON_TOGGLE:
+			switch (device->llcon_mode) {
+				case LLCON_DISABLED:
+					cmd_oem_enable_sync_llcon(NULL, NULL, 0);
+					break;
+				case LLCON_SYNC:
+					cmd_oem_enable_async_llcon(NULL, NULL, 0);
+					break;
+				case LLCON_ASYNC:
+					cmd_oem_disable_llcon(NULL, NULL, 0);
+					break;
+				default:
+					cmd_oem_disable_llcon(NULL, NULL, 0);
+					break;
+			}
+			break;
+
+		case LLCON_WRAP_TOGGLE:
+			if (device->llcon_wrap)
+				cmd_oem_disable_llcon_wrap(NULL, NULL, 0);
+			else
+				cmd_oem_enable_llcon_wrap(NULL, NULL, 0);
+			break;
+
+		case LLCON_FONT_TOGGLE:
+			switch (device->llcon_font) {
+				case LLCON_FONT_6x11:
+					llcon_font = " 8x16";
+					break;
+				case LLCON_FONT_8x16:
+					llcon_font = " 10x18";
+					break;
+				case LLCON_FONT_10x18:
+					llcon_font = " 12x22";
+					break;
+				case LLCON_FONT_12x22:
+					llcon_font = " 6x11";
+					break;
+				default:
+					llcon_font = " 6x11";
+					break;
+			}
+			cmd_oem_set_llcon_font_size(llcon_font, NULL, 0);
+			break;
+
+		case LLCON_COLOR_TOGGLE:
+			if (device->llcon_color == BLACK)
+				font_color="WHITE";
+			else if (device->llcon_color == WHITE)
+				font_color="GRAY";
+			else if (device->llcon_color == GRAY)
+				font_color="SILVER";
+			else if (device->llcon_color == SILVER)
+				font_color="MAROON";
+			else if (device->llcon_color == MAROON)
+				font_color="RED";
+			else if (device->llcon_color == RED)
+				font_color="GREEN";
+			else if (device->llcon_color == GREEN)
+				font_color="LIME";
+			else if (device->llcon_color == LIME)
+				font_color="NAVY";
+			else if (device->llcon_color == NAVY)
+				font_color="BLUE";
+			else if (device->llcon_color == BLUE)
+				font_color="OLIVE";
+			else if (device->llcon_color == OLIVE)
+				font_color="YELLOW";
+			else if (device->llcon_color == YELLOW)
+				font_color="PURPLE";
+			else if (device->llcon_color == PURPLE)
+				font_color="FUCHSIA";
+			else if (device->llcon_color == FUCHSIA)
+				font_color="TEAL";
+			else if (device->llcon_color == TEAL)
+				font_color="AQUA";
+			else if (device->llcon_color == AQUA)
+				font_color="WHITE";
+			cmd_oem_set_llcon_font_color(font_color, NULL, 0);
+			break;
+
 		case EMMC_READ_SPEED_TEST:
 			test_storage_read_speed(EMMC_CARD, false);
 			break;
@@ -495,6 +650,14 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case FULL_SD_READ_SPEED_TEST:
 			destroy_menu(menu);
 			draw_menu(advanced_menu, selection);
+			break;
+
+		case LLCON_TOGGLE:
+		case LLCON_WRAP_TOGGLE:
+		case LLCON_FONT_TOGGLE:
+		case LLCON_COLOR_TOGGLE:
+			destroy_menu(menu);
+			draw_menu(llcon_options_menu, selection);
 			break;
 
 		default:

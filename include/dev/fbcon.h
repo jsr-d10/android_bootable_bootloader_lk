@@ -135,6 +135,9 @@ void fbcon_set_storage_status(void);
 void fbcon_print_version(void);
 void fbcon_print_init_time(void);
 
+char *fbcon_get_color_name(unsigned color);
+unsigned fbcon_get_color_by_name(const char *name);
+
 enum align {
 	ALIGN_LEFT = 0,
 	ALIGN_CENTER,

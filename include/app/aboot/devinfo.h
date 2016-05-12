@@ -49,6 +49,10 @@ struct device_info
 	unsigned last_boot_media;
 	unsigned bootmenu_on_boot;
 	unsigned permissive_selinux;
+	unsigned llcon_mode;
+	unsigned llcon_wrap;
+	unsigned llcon_font;
+	unsigned llcon_color;
 };
 
 #endif

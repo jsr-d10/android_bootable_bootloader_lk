@@ -671,3 +671,51 @@ void fbcon_print_init_time(void)
 	fbcon_acprintf(0, ALIGN_RIGHT, color, "INIT: %u          ",
 		       (it > 99999) ? 99999 : (uint32_t)it);
 	}
+
+char *fbcon_get_color_name(unsigned color)
+{
+	switch (color) {
+		case BLACK:  return "BLACK";
+		case GRAY:   return "GRAY";
+		case SILVER: return "SILVER";
+		case WHITE:  return "WHITE";
+		case MAROON: return "MAROON";
+		case RED:    return "RED";
+		case GREEN:  return "GREEN";
+		case LIME:   return "LIME";
+		case NAVY:   return "NAVY";
+		case BLUE:   return "BLUE";
+		case OLIVE:  return "OLIVE";
+		case YELLOW: return "YELLOW";
+		case PURPLE: return "PURPLE";
+		case TEAL:   return "TEAL";
+		case AQUA:   return "AQUA";
+		case FUCHSIA: return "FUCHSIA";
+	}
+	return "UNKNOWN";
+}
+
+unsigned fbcon_get_color_by_name(const char *name)
+{
+	unsigned color = WHITE;
+	while (name[0] == ' ' || name[0] == '\t') name++; //trim out unnecessary spaces
+
+	     if (!strcmp(name, "WHITE"))   color=WHITE;
+	else if (!strcmp(name, "BLACK"))   color=BLACK;
+	else if (!strcmp(name, "GRAY"))    color=GRAY;
+	else if (!strcmp(name, "SILVER"))  color=SILVER;
+	else if (!strcmp(name, "MAROON"))  color=MAROON;
+	else if (!strcmp(name, "RED"))     color=RED;
+	else if (!strcmp(name, "GREEN"))   color=GREEN;
+	else if (!strcmp(name, "LIME"))    color=LIME;
+	else if (!strcmp(name, "NAVY"))    color=NAVY;
+	else if (!strcmp(name, "BLUE"))    color=BLUE;
+	else if (!strcmp(name, "OLIVE"))   color=OLIVE;
+	else if (!strcmp(name, "YELLOW"))  color=YELLOW;
+	else if (!strcmp(name, "PURPLE"))  color=PURPLE;
+	else if (!strcmp(name, "FUCHSIA")) color=FUCHSIA;
+	else if (!strcmp(name, "TEAL"))    color=TEAL;
+	else if (!strcmp(name, "AQUA"))    color=AQUA;
+	else if (!strcmp(name, "BLACK"))   color=WHITE;
+	return color;
+}
