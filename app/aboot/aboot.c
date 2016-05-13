@@ -100,8 +100,9 @@ static device_info device = {
 	.bootmenu_on_boot = true,
 	.permissive_selinux = false,
 	.llcon_mode = LLCON_DISABLED,
-	.llcon_wrap = LLCON_NOWRAP,
-	.llcon_font = LLCON_FONT_6x11
+	.llcon_wrap = false,
+	.llcon_font = LLCON_FONT_8x16,
+	.llcon_color = WHITE,
 };
 
 /*
@@ -192,6 +193,8 @@ unsigned char *update_cmdline(const char * cmdline)
 	bool warm_boot = false;
 	bool gpt_exists = partition_gpt_exists();
 	int have_target_boot_params = 0;
+	char llcon_cmdline[128] = {0};
+
 
 	if (cmdline && cmdline[0]) {
 		cmdline_len = strlen(cmdline);
@@ -300,9 +303,9 @@ unsigned char *update_cmdline(const char * cmdline)
 		cmdline_len += strlen(permissive_selinux);
 	}
 
-	if (device.llcon_mode == LLCON_SYNC || device.llcon_mode == LLCON_ASYNC) {
-		char llcon_cmdline[128] = {0};
-		snprintf(llcon_cmdline, 127, llcon_cmdline_fmt, device.llcon_mode, device.llcon_wrap, device.llcon_font, device.llcon_color);
+	if (device.llcon_mode != LLCON_DISABLED) {
+		snprintf(llcon_cmdline, sizeof(llcon_cmdline)-1, llcon_cmdline_fmt,
+			device.llcon_mode, device.llcon_wrap, device.llcon_font, device.llcon_color);
 		cmdline_len += strlen(llcon_cmdline);
 	}
 
@@ -459,10 +462,8 @@ unsigned char *update_cmdline(const char * cmdline)
 			src = permissive_selinux;
 			while ((*dst++ = *src++));
 		}
-		if (device.llcon_mode == LLCON_SYNC || device.llcon_mode == LLCON_ASYNC) {
+		if (llcon_cmdline[0]) {
 			if (have_cmdline) --dst;
-			char llcon_cmdline[128] = {0};
-			snprintf(llcon_cmdline, 127, llcon_cmdline_fmt, device.llcon_mode, device.llcon_wrap, device.llcon_font, device.llcon_color);
 			src = llcon_cmdline;
 			while ((*dst++ = *src++));
 		}
@@ -1399,6 +1400,7 @@ void read_device_info_mmc(device_info *dev)
 
 	if (memcmp(info->magic, DEVICE_MAGIC, DEVICE_MAGIC_SIZE))
 	{
+		memset(info, 0, sizeof(*info));
 		memcpy(info->magic, DEVICE_MAGIC, DEVICE_MAGIC_SIZE);
 		info->is_unlocked = 0;
 		info->is_tampered = 0;
@@ -1410,8 +1412,9 @@ void read_device_info_mmc(device_info *dev)
 		info->bootmenu_on_boot = 1;
 		info->permissive_selinux = 0;
 		info->llcon_mode = LLCON_DISABLED;
-		info->llcon_wrap = LLCON_NOWRAP;
-		info->llcon_font = LLCON_FONT_6x11;
+		info->llcon_wrap = 0;
+		info->llcon_font = LLCON_FONT_8x16;
+		info->llcon_color = WHITE;
 
 		write_device_info_mmc(info);
 	}
@@ -2302,7 +2305,7 @@ void cmd_oem_disable_permissive_selinux(const char *arg, void *data, unsigned si
 void cmd_oem_disable_llcon(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Disabling LLCON\n");
-	device.llcon_mode = 0;
+	device.llcon_mode = LLCON_DISABLED;
 	write_device_info(&device);
 	fastboot_okay("");
 }
@@ -2310,7 +2313,7 @@ void cmd_oem_disable_llcon(const char *arg, void *data, unsigned size)
 void cmd_oem_enable_sync_llcon(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Enabling sync LLCON\n");
-	device.llcon_mode = 1;
+	device.llcon_mode = LLCON_SYNC;
 	write_device_info(&device);
 	fastboot_okay("");
 }
@@ -2318,15 +2321,44 @@ void cmd_oem_enable_sync_llcon(const char *arg, void *data, unsigned size)
 void cmd_oem_enable_async_llcon(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Enabling async LLCON\n");
-	device.llcon_mode = 2;
+	device.llcon_mode = LLCON_ASYNC;
 	write_device_info(&device);
 	fastboot_okay("");
+}
+
+int get_llcon_mode_by_name(const char * name, int def)
+{
+	if (!name)
+		return def;
+	while (name[0] == ' ' || name[0] == '\t') {
+		name++; //trim out unnecessary spaces
+	}
+	switch (tolower(name[0])) {
+		case 0:   return def;
+		case 'd': return LLCON_DISABLED;
+		case 's': return LLCON_SYNC;
+		case 'a': return LLCON_ASYNC;
+	}
+	return def;
+}
+
+void cmd_oem_set_llcon_mode(const char *arg, void *data, unsigned size)
+{
+	int id = (int)arg;
+	if ((size_t)arg >= PAGE_SIZE)
+		id = get_llcon_mode_by_name(arg, LLCON_DISABLED);
+	switch (id) {
+		case LLCON_ASYNC:    return cmd_oem_enable_async_llcon(NULL, NULL, 0);
+		case LLCON_SYNC:     return cmd_oem_enable_sync_llcon(NULL, NULL, 0);
+		case LLCON_DISABLED: return cmd_oem_disable_llcon(NULL, NULL, 0);
+	}
+	return cmd_oem_disable_llcon(NULL, NULL, 0);
 }
 
 void cmd_oem_disable_llcon_wrap(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Disabling LLCON word-wrapping\n");
-	device.llcon_wrap = LLCON_NOWRAP;
+	device.llcon_wrap = 0;
 	write_device_info(&device);
 	fastboot_okay("");
 }
@@ -2334,31 +2366,42 @@ void cmd_oem_disable_llcon_wrap(const char *arg, void *data, unsigned size)
 void cmd_oem_enable_llcon_wrap(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Enabling LLCON word-wrapping\n");
-	device.llcon_wrap = LLCON_WRAP;
+	device.llcon_wrap = 1;
 	write_device_info(&device);
 	fastboot_okay("");
 }
 
+int get_llcon_font_by_name(const char * name, int def)
+{
+	if (!name)
+		return def;
+	while (name[0] == ' ' || name[0] == '\t') {
+		name++; //trim out unnecessary spaces
+	}
+	switch (name[0]) {
+		case 0: return def;
+		case '6': return LLCON_FONT_6x11;
+		case '8': return LLCON_FONT_8x16;
+		case '1':
+			if (name[1] == '0') return LLCON_FONT_10x18;
+			if (name[1] == '2') return LLCON_FONT_12x22;
+			break;
+	}
+	return def;
+}
+
 void cmd_oem_set_llcon_font_size(const char *arg, void *data, unsigned size)
 {
-	dprintf(INFO, "Setting LLCON font size\n");
-	while (arg[0] == ' ' || arg[0] == '\t') arg++; //trim out unnecessary spaces
-	int font_size = LLCON_FONT_6x11;
-	if (!strcmp(arg, "6x11"))
-		font_size=LLCON_FONT_6x11;
-	else if (!strcmp(arg, "8x16"))
-		font_size=LLCON_FONT_8x16;
-	else if (!strcmp(arg, "10x18"))
-		font_size=LLCON_FONT_10x18;
-	else if (!strcmp(arg, "12x22"))
-		font_size=LLCON_FONT_12x22; 
-	else {
+	dprintf(INFO, "Setting LLCON font size '%s' \n", arg);
+	int font_size = get_llcon_font_by_name(arg, 0);
+	if (font_size == 0) {
 		fastboot_info("Supported LLCON font sizes:");
 		fastboot_info("6x11 8x16 10x18 12x22");
 		fastboot_fail("");
+		return;
 	}
 	char msg[MAX_RSP_SIZE];
-	snprintf(msg, MAX_RSP_SIZE-5, "Setting LLCON font size: %s %d", arg, font_size);
+	snprintf(msg, MAX_RSP_SIZE-5, "Setting LLCON font size: %s (%d)", arg, font_size);
 	fastboot_info(msg);
 	device.llcon_font = font_size;
 	write_device_info(&device);
@@ -2367,14 +2410,17 @@ void cmd_oem_set_llcon_font_size(const char *arg, void *data, unsigned size)
 
 void cmd_oem_set_llcon_font_color(const char *arg, void *data, unsigned size)
 {
-	dprintf(INFO, "Setting LLCON font color\n");
-	unsigned font_color = fbcon_get_color_by_name(arg);
-	fastboot_info("Supported LLCON font colors:");
-	fastboot_info("WHITE GRAY SILVER MAROON RED GREEN LIME NAVY");
-	fastboot_info("BLUE OLIVE YELLOW PURPLE FUCHSIA TEAL AQUA");
-
+	dprintf(INFO, "Setting LLCON font color '%s' \n", arg);
+	unsigned font_color = fbcon_get_color_by_name(arg, 0);
+	if (font_color == 0) {
+		fastboot_info("Supported LLCON font colors:");
+		fastboot_info("WHITE GRAY SILVER MAROON RED GREEN LIME NAVY");
+		fastboot_info("BLUE OLIVE YELLOW PURPLE FUCHSIA TEAL AQUA");
+		fastboot_fail("");
+		return;
+	}
 	char msg[MAX_RSP_SIZE];
-	snprintf(msg, MAX_RSP_SIZE-5, "Setting LLCON font color: %s (0x%X)", fbcon_get_color_name(font_color), font_color);
+	snprintf(msg, MAX_RSP_SIZE-5, "Setting LLCON font color: %s (0x%06X)", fbcon_get_color_name(font_color, ""), font_color);
 	fastboot_info(msg);
 	device.llcon_color = font_color;
 	write_device_info(&device);
@@ -2418,65 +2464,24 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	snprintf(response, sizeof(response), "\tIsolated sdcard boot mode enabled: %s", (device.isolated_sdcard ? "true" : "false"));
 	fastboot_info(response);
 
-	switch (device.default_boot_media) {
-		case BOOT_MEDIA_EMMC:
-			boot_media = "eMMC";
-			break;
-		case BOOT_MEDIA_SD:
-			boot_media = "SD";
-			break;
-		case BOOT_MEDIA_LAST:
-			boot_media = "Last";
-			break;
-		default:
-			break;
-	}
-	snprintf(response, sizeof(response), "\tDefault boot media: %s", boot_media);
+	snprintf(response, sizeof(response), "\tDefault boot media: %s", get_boot_media_by_id(device.default_boot_media, NULL));
 	fastboot_info(response);
 
 	if (device.default_boot_media == BOOT_MEDIA_LAST) {
-		switch (device.last_boot_media) {
-			case BOOT_MEDIA_EMMC:
-				boot_media = "eMMC";
-				break;
-			case BOOT_MEDIA_SD:
-				boot_media = "SD";
-				break;
-			default:
-				break;
-		}
-		snprintf(response, sizeof(response), "\tLast boot media: %s", boot_media);
+		snprintf(response, sizeof(response), "\tLast boot media: %s", get_boot_media_by_id(device.last_boot_media, NULL));
 		fastboot_info(response);
 	}
 
 	snprintf(response, sizeof(response), "\tShow boot menu on boot: %s", (device.bootmenu_on_boot ? "true" : "false"));
 	fastboot_info(response);
-	snprintf(response, sizeof(response), "\tLLCON: %s", (device.llcon_mode ? "true" : "false"));
+	snprintf(response, sizeof(response), "\tLLCON mode: %s", get_llcon_mode_by_id(device.llcon_mode, "unknown"));
 	fastboot_info(response);
-	snprintf(response, sizeof(response), "\tLLCON line wrap: %s", (device.llcon_wrap ? "true" : "false"));
+	snprintf(response, sizeof(response), "\tLLCON text wrap: %s", (device.llcon_wrap ? "true" : "false"));
 	fastboot_info(response);
 
-	char *llcon_font = NULL;
-	switch (device.llcon_font) {
-		case LLCON_FONT_6x11:
-			llcon_font = "6x11";
-			break;
-		case LLCON_FONT_8x16:
-			llcon_font = "8x16";
-			break;
-		case LLCON_FONT_10x18:
-			llcon_font = "10x18";
-			break;
-		case LLCON_FONT_12x22:
-			llcon_font = "12x22";
-			break;
-		default:
-			llcon_font = "unknown";
-			break;
-	}
-	snprintf(response, sizeof(response), "\tLLCON font size: %s", llcon_font);
+	snprintf(response, sizeof(response), "\tLLCON font size: %s", get_llcon_font_by_id(device.llcon_font, "unknown"));
 	fastboot_info(response);
-	snprintf(response, sizeof(response), "\tLLCON font color: %s", fbcon_get_color_name(device.llcon_color));	
+	snprintf(response, sizeof(response), "\tLLCON font color: %s", fbcon_get_color_name(device.llcon_color, "unknown"));	
 	fastboot_info(response);
 
 	fastboot_okay("");
@@ -2802,82 +2807,27 @@ void aboot_fastboot_register_commands(void)
 			device.isolated_sdcard);
 	fastboot_publish("isolated-sdcard-enabled",
 			(const char *) isolated_sdcard_enabled);
-	char *boot_media = NULL;
-	switch (device.default_boot_media) {
-		case BOOT_MEDIA_EMMC:
-			boot_media = "eMMC";
-			break;
-		case BOOT_MEDIA_SD:
-			boot_media = "SD";
-			break;
-		case BOOT_MEDIA_LAST:
-			boot_media = "Last";
-			break;
-		default:
-			break;
-	}
-	fastboot_publish("default-boot-media",
-			(const char *) boot_media);
 
-	if (strncmp(boot_media, "Last", strlen("Last")) == 0) {
-		char *last_boot_media = NULL;
-		switch (device.last_boot_media) {
-			case BOOT_MEDIA_EMMC:
-				last_boot_media = "eMMC";
-				break;
-			case BOOT_MEDIA_SD:
-				last_boot_media = "SD";
-				break;
-			default:
-				break;
-		}
+	fastboot_publish("default-boot-media",
+			get_boot_media_by_id(device.default_boot_media, NULL));
+
+	if (device.default_boot_media == BOOT_MEDIA_LAST) {
 		fastboot_publish("last-boot-media",
-				(const char *) last_boot_media);
+				get_boot_media_by_id(device.last_boot_media, NULL));
 	}
 	fastboot_publish("bootmenu-on-boot",
 		device.bootmenu_on_boot ? "true" : "false");
 	fastboot_publish("permissive-selinux",
 		device.permissive_selinux ? "true" : "false");
-	char *llcon_mode = NULL;
-	switch (device.llcon_mode) {
-		case LLCON_DISABLED:
-			llcon_mode = "disabled";
-			break;
-		case LLCON_SYNC:
-			llcon_mode = "sync";
-			break;
-		case LLCON_ASYNC:
-			llcon_mode = "async";
-			break;
-		default:
-			break;
-	}
+
 	fastboot_publish("llcon-mode",
-			(const char *) llcon_mode);
+		get_llcon_mode_by_id(device.llcon_mode, "unknown"));
 	fastboot_publish("llcon-wrap",
 		device.llcon_wrap ? "true" : "false");
-	char *llcon_font = NULL;
-	switch (device.llcon_font) {
-		case LLCON_FONT_6x11:
-			llcon_font = "6x11";
-			break;
-		case LLCON_FONT_8x16:
-			llcon_font = "8x16";
-			break;
-		case LLCON_FONT_10x18:
-			llcon_font = "10x18";
-			break;
-		case LLCON_FONT_12x22:
-			llcon_font = "12x22";
-			break;
-		default:
-			llcon_font = "unknown";
-			break;
-	}
 	fastboot_publish("llcon-font-size",
-		llcon_font);
+		get_llcon_font_by_id(device.llcon_font, "unknown"));
 	fastboot_publish("llcon-font-color",
-		fbcon_get_color_name(device.llcon_color));
+		fbcon_get_color_name(device.llcon_color, "unknown"));
 }
 
 void aboot_init(const struct app_descriptor *app)

@@ -39,5 +39,13 @@ int isxdigit(int c);
 int tolower(int c);
 int toupper(int c);
 
+inline void strtoupper(char * str)
+{
+	while (*str) {
+		*str = toupper(*str);
+		str++;
+	}
+}
+
 #endif
 

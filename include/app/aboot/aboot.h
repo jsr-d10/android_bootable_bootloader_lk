@@ -121,7 +121,7 @@ static const char *baseband_sglte2  = " androidboot.baseband=sglte2";
 static const char *warmboot_cmdline = " qpnp-power-on.warm_boot=1";
 
 static const char *permissive_selinux = " androidboot.selinux=permissive";
-static const char *llcon_cmdline_fmt = " androidboot.llcon=%d,100,%d,0x03200000,24,1280,720,720,%d,0x%06x";
+static const char *llcon_cmdline_fmt = " androidboot.llcon=%d,100,%d,0,24,1280,720,720,%d,0x%06x";
 
 struct atag_ptbl_entry
 {
@@ -163,16 +163,31 @@ enum boot_media {
 	BOOT_MEDIA_SD
 };
 
+inline const char * get_boot_media_by_id(unsigned id, const char * unk)
+{
+	switch (id) {
+		case BOOT_MEDIA_LAST: return "Last";
+		case BOOT_MEDIA_EMMC: return "eMMC";
+		case BOOT_MEDIA_SD:   return "SD";
+	}
+	return unk;
+}
+
 enum llcon_mode {
 	LLCON_DISABLED = 0,
-	LLCON_SYNC,
-	LLCON_ASYNC
+	LLCON_SYNC     = 1,
+	LLCON_ASYNC    = 2,
 };
 
-enum llcon_wrap {
-	LLCON_NOWRAP = 0,
-	LLCON_WRAP
-};
+inline const char * get_llcon_mode_by_id(unsigned id, const char * unk)
+{
+	switch (id) {
+		case LLCON_DISABLED: return "disabled";
+		case LLCON_SYNC:     return "sync";
+		case LLCON_ASYNC:    return "async";
+	}
+	return unk;
+}
 
 enum llcon_font {
 	LLCON_FONT_6x11 = 6,
@@ -180,6 +195,17 @@ enum llcon_font {
 	LLCON_FONT_10x18 = 10,
 	LLCON_FONT_12x22 = 12,
 };
+
+inline const char * get_llcon_font_by_id(unsigned id, const char * unk)
+{
+	switch (id) {
+		case LLCON_FONT_6x11:  return "6x11";
+		case LLCON_FONT_8x16:  return "8x16";
+		case LLCON_FONT_10x18: return "10x18";
+		case LLCON_FONT_12x22: return "12x22";
+	}
+	return unk;
+}
 
 bool boot_into_fastboot_get(void);
 void boot_into_fastboot_set(bool flag);
@@ -201,13 +227,18 @@ void cmd_oem_disable_bootmenu_on_boot(const char *arg, void *data, unsigned size
 void cmd_oem_enable_bootmenu_on_boot(const char *arg, void *data, unsigned size);
 void cmd_oem_disable_selinux(const char *arg, void *data, unsigned size);
 void cmd_oem_enable_selinux(const char *arg, void *data, unsigned size);
+
 void cmd_oem_disable_llcon(const char *arg, void *data, unsigned size);
 void cmd_oem_enable_sync_llcon(const char *arg, void *data, unsigned size);
 void cmd_oem_enable_async_llcon(const char *arg, void *data, unsigned size);
+void cmd_oem_set_llcon_mode(const char *arg, void *data, unsigned size);
+
 void cmd_oem_enable_llcon_wrap(const char *arg, void *data, unsigned size);
 void cmd_oem_disable_llcon_wrap(const char *arg, void *data, unsigned size);
+
 void cmd_oem_set_llcon_font_size(const char *arg, void *data, unsigned size);
 void cmd_oem_set_llcon_font_color(const char *arg, void *data, unsigned size);
+
 void set_last_boot_media(int media);
 
 void write_device_info(device_info *dev);

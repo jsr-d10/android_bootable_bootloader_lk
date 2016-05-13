@@ -638,7 +638,7 @@ void fbcon_set_storage_status(void)
 			break;
 		default:
 			dprintf(CRITICAL, "%s: Health bad, slot=%d, retries=%d\n", __func__, dev->config.slot, dev->card.retries);
-			color=YELLOW;
+			color = YELLOW;
 			break;
 	}
 	fbcon_acprint(card_state, 0, ALIGN_RIGHT, color);
@@ -672,7 +672,7 @@ void fbcon_print_init_time(void)
 		       (it > 99999) ? 99999 : (uint32_t)it);
 	}
 
-char *fbcon_get_color_name(unsigned color)
+const char * fbcon_get_color_name(unsigned color, const char * unk)
 {
 	switch (color) {
 		case BLACK:  return "BLACK";
@@ -692,30 +692,30 @@ char *fbcon_get_color_name(unsigned color)
 		case AQUA:   return "AQUA";
 		case FUCHSIA: return "FUCHSIA";
 	}
-	return "UNKNOWN";
+	return unk;
 }
 
-unsigned fbcon_get_color_by_name(const char *name)
+unsigned fbcon_get_color_by_name(const char * name, unsigned def)
 {
-	unsigned color = WHITE;
-	while (name[0] == ' ' || name[0] == '\t') name++; //trim out unnecessary spaces
-
-	     if (!strcmp(name, "WHITE"))   color=WHITE;
-	else if (!strcmp(name, "BLACK"))   color=BLACK;
-	else if (!strcmp(name, "GRAY"))    color=GRAY;
-	else if (!strcmp(name, "SILVER"))  color=SILVER;
-	else if (!strcmp(name, "MAROON"))  color=MAROON;
-	else if (!strcmp(name, "RED"))     color=RED;
-	else if (!strcmp(name, "GREEN"))   color=GREEN;
-	else if (!strcmp(name, "LIME"))    color=LIME;
-	else if (!strcmp(name, "NAVY"))    color=NAVY;
-	else if (!strcmp(name, "BLUE"))    color=BLUE;
-	else if (!strcmp(name, "OLIVE"))   color=OLIVE;
-	else if (!strcmp(name, "YELLOW"))  color=YELLOW;
-	else if (!strcmp(name, "PURPLE"))  color=PURPLE;
-	else if (!strcmp(name, "FUCHSIA")) color=FUCHSIA;
-	else if (!strcmp(name, "TEAL"))    color=TEAL;
-	else if (!strcmp(name, "AQUA"))    color=AQUA;
-	else if (!strcmp(name, "BLACK"))   color=WHITE;
-	return color;
+	while (name[0] == ' ' || name[0] == '\t') {
+		name++; //trim out unnecessary spaces
+	}
+	if (!name[0]) return def;
+	if (!strcmp(name, "WHITE"))   return WHITE;
+	if (!strcmp(name, "BLACK"))   return BLACK;
+	if (!strcmp(name, "GRAY"))    return GRAY;
+	if (!strcmp(name, "SILVER"))  return SILVER;
+	if (!strcmp(name, "MAROON"))  return MAROON;
+	if (!strcmp(name, "RED"))     return RED;
+	if (!strcmp(name, "GREEN"))   return GREEN;
+	if (!strcmp(name, "LIME"))    return LIME;
+	if (!strcmp(name, "NAVY"))    return NAVY;
+	if (!strcmp(name, "BLUE"))    return BLUE;
+	if (!strcmp(name, "OLIVE"))   return OLIVE;
+	if (!strcmp(name, "YELLOW"))  return YELLOW;
+	if (!strcmp(name, "PURPLE"))  return PURPLE;
+	if (!strcmp(name, "FUCHSIA")) return FUCHSIA;
+	if (!strcmp(name, "TEAL"))    return TEAL;
+	if (!strcmp(name, "AQUA"))    return AQUA;
+	return def;
 }

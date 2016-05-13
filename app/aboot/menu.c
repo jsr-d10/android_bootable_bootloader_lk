@@ -10,6 +10,7 @@
 #include <app/aboot/advanced.h>
 #include <sdhci_msm.h>
 #include <qtimer.h>
+#include <ctype.h>
 
 int sdcard_is_bootable = false;
 int autoboot = true;
@@ -102,60 +103,44 @@ static struct menu *llcon_options_menu(void) {
 	unsigned header_line = fbcon_get_header_line();
 	struct menu *menu = NULL;
 	int C = 2; //lines Counter
+	size_t offset;
+
 	menu = create_menu ("LLCON Options", GREEN, 0x10);
 
-	char llcon[MAX_ITEM_LEN];
-	char llcon_wrap[MAX_ITEM_LEN];
-	char llcon_font[MAX_ITEM_LEN];
-	char llcon_color[MAX_ITEM_LEN];
-	char llcon_color_fmt[MAX_ITEM_LEN] = "LLCON FONT COLOR:        ";
+	char llcon_mode[MAX_ITEM_LEN]    = "LLCON MODE:              ";
+	char llcon_wrap[MAX_ITEM_LEN]    = "LLCON TEXT WRAP:         ";
+	char llcon_font[MAX_ITEM_LEN]    = "LLCON FONT SIZE:         ";
+	char llcon_color[MAX_ITEM_LEN]   = "LLCON FONT COLOR:        ";
 	char bootanimation[MAX_ITEM_LEN];
-	char *llcon_mode = NULL;
-	switch (device->llcon_mode) {
-		case LLCON_DISABLED:
-			llcon_mode = "  OFF";
-			break;
-		case LLCON_SYNC:
-			llcon_mode = " SYNC";
-			break;
-		case LLCON_ASYNC:
-		default:
-			llcon_mode = "ASYNC";
-			break;
-	}
-	snprintf(llcon, MAX_ITEM_LEN, "LLCON:              %s", llcon_mode);
-	snprintf(llcon_wrap, MAX_ITEM_LEN, "LLCON LINE WRAP:        %s", device->llcon_wrap ? "Y" : "N");
-	int offset = strlen(llcon_color_fmt) - strlen(fbcon_get_color_name(device->llcon_color));
-	strncpy(llcon_color_fmt+offset, "%s", strlen("%s"));
-	snprintf(llcon_color, MAX_ITEM_LEN, llcon_color_fmt, fbcon_get_color_name(device->llcon_color));
 
-	char *llcon_font_size = NULL;
-	switch (device->llcon_font) {
-		case LLCON_FONT_6x11:
-			llcon_font_size = " 6x11";
-			break;
-		case LLCON_FONT_8x16:
-			llcon_font_size = " 8x16";
-			break;
-		case LLCON_FONT_10x18:
-			llcon_font_size = "10x18";
-			break;
-		case LLCON_FONT_12x22:
-			llcon_font_size = "12x22";
-			break;
-		default:
-			llcon_font_size = " 6x11";
-			break;
-	}
-	snprintf(llcon_font, MAX_ITEM_LEN, "LLCON FONT SIZE:    %s", llcon_font_size);
+	const char * llcon_mode_name = get_llcon_mode_by_id(device->llcon_mode, "unk");
+	offset = strlen(llcon_mode) - strlen(llcon_mode_name);
+	strncpy(llcon_mode + offset, sizeof(llcon_mode)-1, llcon_mode_name);
+	strtoupper(llcon_mode);
+
+	const char * llcon_wrap_name = device->llcon_wrap ? "Y" : "N";
+	offset = strlen(llcon_wrap) - strlen(llcon_wrap_name);
+	strncpy(llcon_wrap + offset, sizeof(llcon_wrap)-1, llcon_wrap_name);
+	strtoupper(llcon_wrap);
+
+	const char * llcon_font_name = get_llcon_font_by_id(device->llcon_font, "unk");
+	offset = strlen(llcon_font) - strlen(llcon_font_name);
+	strncpy(llcon_font + offset, sizeof(llcon_font)-1, llcon_font_name);
+	strtoupper(llcon_font);
+
+	const char * llcon_color_name = fbcon_get_color_name(device->llcon_color, "unk");
+	offset = strlen(llcon_color) - strlen(llcon_color_name);
+	strncpy(llcon_color + offset, sizeof(llcon_color)-1, llcon_color_name);
+	strtoupper(llcon_color);
 
 	add_menu_item(menu, 1, header_line + C++, SILVER, "BACK TO OPTIONS MENU =>", OPTIONS_MENU);
-	add_menu_item(menu, 1, header_line + C++, LIME, llcon, LLCON_TOGGLE);
+	add_menu_item(menu, 1, header_line + C++, LIME, llcon_mode, LLCON_TOGGLE);
 	if (device->llcon_mode != LLCON_DISABLED) {
 		add_menu_item(menu, 1, header_line + C++, GREEN, llcon_wrap, LLCON_WRAP_TOGGLE);
 		add_menu_item(menu, 1, header_line + C++, WHITE, llcon_font, LLCON_FONT_TOGGLE);
-		if (device->llcon_color == BLACK)
-			cmd_oem_set_llcon_font_color(" WHITE", NULL, 0);
+		if (device->llcon_color == BLACK) {
+			cmd_oem_set_llcon_font_color(fbcon_get_color_name(WHITE, ""), NULL, 0);
+		}
 		add_menu_item(menu, 1, header_line + C, device->llcon_color, llcon_color, LLCON_COLOR_TOGGLE);
 // 		add_menu_item(menu, 1, header_line + C++, GREEN, bootanimation, BOOTANIMATION_TOGGLE);
 	}
@@ -388,6 +373,7 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 
 static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	struct mmc_device *dev;
+	int x;
 
 	device_info *device = get_device_info();
 	dprintf(SPEW, "%s: processing selection=%d\n", __func__, selection);
@@ -416,8 +402,6 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	boot_into_fastboot_set(false);
 	boot_into_recovery = 0;
 
-	char *llcon_font = " 6x11";
-	char *font_color = " WHITE";
 	switch (selection) {
 		case EMMC_BOOT:
 		case SD_BOOT:
@@ -533,20 +517,13 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			break;
 
 		case LLCON_TOGGLE:
-			switch (device->llcon_mode) {
-				case LLCON_DISABLED:
-					cmd_oem_enable_sync_llcon(NULL, NULL, 0);
+			x = device->llcon_mode;
+			while (1) {
+				x = (x > 256) ? 0 : x + 1;
+				if (get_llcon_mode_by_id(x, NULL))
 					break;
-				case LLCON_SYNC:
-					cmd_oem_enable_async_llcon(NULL, NULL, 0);
-					break;
-				case LLCON_ASYNC:
-					cmd_oem_disable_llcon(NULL, NULL, 0);
-					break;
-				default:
-					cmd_oem_disable_llcon(NULL, NULL, 0);
-					break;
-			}
+			}				
+			cmd_oem_set_llcon_mode((const char *)x, NULL, 0);
 			break;
 
 		case LLCON_WRAP_TOGGLE:
@@ -557,60 +534,35 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			break;
 
 		case LLCON_FONT_TOGGLE:
-			switch (device->llcon_font) {
-				case LLCON_FONT_6x11:
-					llcon_font = " 8x16";
-					break;
-				case LLCON_FONT_8x16:
-					llcon_font = " 10x18";
-					break;
-				case LLCON_FONT_10x18:
-					llcon_font = " 12x22";
-					break;
-				case LLCON_FONT_12x22:
-					llcon_font = " 6x11";
-					break;
-				default:
-					llcon_font = " 6x11";
+			x = device->llcon_font;
+			while (1) {
+				x = (x > 256) ? 0 : x + 1;
+				if (get_llcon_font_by_id(x, NULL))
 					break;
 			}
-			cmd_oem_set_llcon_font_size(llcon_font, NULL, 0);
+			cmd_oem_set_llcon_font_size(get_llcon_font_by_id(x, ""), NULL, 0);
 			break;
 
 		case LLCON_COLOR_TOGGLE:
-			if (device->llcon_color == BLACK)
-				font_color="WHITE";
-			else if (device->llcon_color == WHITE)
-				font_color="GRAY";
-			else if (device->llcon_color == GRAY)
-				font_color="SILVER";
-			else if (device->llcon_color == SILVER)
-				font_color="MAROON";
-			else if (device->llcon_color == MAROON)
-				font_color="RED";
-			else if (device->llcon_color == RED)
-				font_color="GREEN";
-			else if (device->llcon_color == GREEN)
-				font_color="LIME";
-			else if (device->llcon_color == LIME)
-				font_color="NAVY";
-			else if (device->llcon_color == NAVY)
-				font_color="BLUE";
-			else if (device->llcon_color == BLUE)
-				font_color="OLIVE";
-			else if (device->llcon_color == OLIVE)
-				font_color="YELLOW";
-			else if (device->llcon_color == YELLOW)
-				font_color="PURPLE";
-			else if (device->llcon_color == PURPLE)
-				font_color="FUCHSIA";
-			else if (device->llcon_color == FUCHSIA)
-				font_color="TEAL";
-			else if (device->llcon_color == TEAL)
-				font_color="AQUA";
-			else if (device->llcon_color == AQUA)
-				font_color="WHITE";
-			cmd_oem_set_llcon_font_color(font_color, NULL, 0);
+			switch (device->llcon_color) {
+				case GRAY:   x = SILVER; break;
+				case SILVER: x = WHITE; break;
+				case WHITE:  x = MAROON; break;
+				case MAROON: x = RED; break;
+				case RED:    x = GREEN; break;
+				case GREEN:  x = LIME; break;
+				case LIME:   x = NAVY; break;
+				case NAVY:   x = BLUE; break;
+				case BLUE:   x = OLIVE; break;
+				case OLIVE:  x = YELLOW; break;
+				case YELLOW: x = PURPLE; break;
+				case PURPLE: x = TEAL; break;
+				case TEAL:   x = AQUA; break;
+				case AQUA:   x = FUCHSIA; break;
+				case FUCHSIA: x = GRAY; break;
+				default: x = WHITE; break;
+			}
+			cmd_oem_set_llcon_font_color(fbcon_get_color_name(x, ""), NULL, 0);
 			break;
 
 		case EMMC_READ_SPEED_TEST:
