@@ -519,7 +519,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case LLCON_TOGGLE:
 			x = device->llcon_mode;
 			while (1) {
-				x = (x > 256) ? 0 : x + 1;
+				x = (x > 10) ? 0 : x + 1;
 				if (get_llcon_mode_by_id(x, NULL))
 					break;
 			}				
@@ -536,7 +536,7 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case LLCON_FONT_TOGGLE:
 			x = device->llcon_font;
 			while (1) {
-				x = (x > 256) ? 0 : x + 1;
+				x = (x > 32) ? 0 : x + 1;
 				if (get_llcon_font_by_id(x, NULL))
 					break;
 			}
