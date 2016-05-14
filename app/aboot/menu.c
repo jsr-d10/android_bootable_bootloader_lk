@@ -115,22 +115,22 @@ static struct menu *llcon_options_menu(void) {
 
 	const char * llcon_mode_name = get_llcon_mode_by_id(device->llcon_mode, "unk");
 	offset = strlen(llcon_mode) - strlen(llcon_mode_name);
-	strncpy(llcon_mode + offset, sizeof(llcon_mode)-1, llcon_mode_name);
+	strcpy(llcon_mode + offset, llcon_mode_name);
 	strtoupper(llcon_mode);
 
 	const char * llcon_wrap_name = device->llcon_wrap ? "Y" : "N";
 	offset = strlen(llcon_wrap) - strlen(llcon_wrap_name);
-	strncpy(llcon_wrap + offset, sizeof(llcon_wrap)-1, llcon_wrap_name);
+	strcpy(llcon_wrap + offset, llcon_wrap_name);
 	strtoupper(llcon_wrap);
 
 	const char * llcon_font_name = get_llcon_font_by_id(device->llcon_font, "unk");
 	offset = strlen(llcon_font) - strlen(llcon_font_name);
-	strncpy(llcon_font + offset, sizeof(llcon_font)-1, llcon_font_name);
+	strcpy(llcon_font + offset, llcon_font_name);
 	strtoupper(llcon_font);
 
 	const char * llcon_color_name = fbcon_get_color_name(device->llcon_color, "unk");
 	offset = strlen(llcon_color) - strlen(llcon_color_name);
-	strncpy(llcon_color + offset, sizeof(llcon_color)-1, llcon_color_name);
+	strcpy(llcon_color + offset, llcon_color_name);
 	strtoupper(llcon_color);
 
 	add_menu_item(menu, 1, header_line + C++, SILVER, "BACK TO OPTIONS MENU =>", OPTIONS_MENU);
