@@ -269,24 +269,31 @@ static void move_cursor(struct menu_item *old, struct menu_item *new, uint32_t c
 	fbcon_putc(cursor);
 }
 
-static uint32_t process_menu(struct menu *menu, int default_selection) {
+struct menu_item *get_item_by_type(struct menu *menu, int type)
+{
+	bool item_found = false;
 	struct menu_item *selected = menu->item;
-	int item_found = false;
-	bool power_released = false;
-	
 	while (true) {
-		if (selected->type == default_selection) {
-			item_found = true;
-			break;
-		} else {
-			selected = selected->next;
-		}
-		if (selected == menu->item) // If we passed full loop through menu items, but item with default_selection type was not found
-			break;
+	if (selected->type == type) {
+		item_found = true;
+		break;
+	} else {
+		selected = selected->next;
+	}
+
+	if (selected == menu->item) // If we passed full loop through menu items, but item with desired type was not found
+		break;
 	}
 
 	if (!item_found)
 		selected = menu->item;
+
+	return selected;
+}
+
+static uint32_t process_menu(struct menu *menu, int default_selection) {
+	struct menu_item *selected = get_item_by_type(menu, default_selection);
+	bool power_released = false;
 
 	move_cursor(selected, selected, LIME, menu->cursor);
 	device_info *device = get_device_info();

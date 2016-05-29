@@ -73,5 +73,6 @@ static struct menu_item *add_menu_item(
 
 static void draw_menu(struct menu *menu_function(void), int default_selection);
 void main_menu(int boot_media, int reboot_mode, int hard_reboot_mode);
+struct menu_item *get_item_by_type(struct menu *menu, int type);
 
 #endif // __MENU_H
