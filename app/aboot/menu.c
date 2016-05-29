@@ -668,8 +668,17 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case BL_CONTROL_TOGGLE:
 			if (device->backlight_control)
 				cmd_oem_disable_backlight_control(NULL, NULL, 0);
-			else
+			else {
 				cmd_oem_enable_backlight_control(NULL, NULL, 0);
+				if (cached_bl_min == 0) {
+					cached_bl_min == DEFAULT_MIN_BACKLIGHT;
+					cmd_oem_set_min_backlight((const char *)cached_bl_min, NULL, 0);
+				}
+				if (cached_bl_max == 0) {
+					cached_bl_max == DEFAULT_MAX_BACKLIGHT;
+					cmd_oem_set_max_backlight((const char *)cached_bl_max, NULL, 0);
+				}
+			}
 			break;
 
 		case BL_MIN_ADJUST:
