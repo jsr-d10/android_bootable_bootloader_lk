@@ -67,8 +67,6 @@ else
         cp -r zip_template /tmp/
         cp "$build_dir/../../emmc_appsboot.mbn" "/tmp/zip_template/firmware-update/IBL_$VERSION.mbn"
         cat > /tmp/zip_template/META-INF/com/google/android/updater-script <<EOF
-assert(getprop("ro.product.device") == "D10A_HighScreen" ||
-getprop("ro.build.product") == "D10A_HighScreen");
 # ---- radio update tasks ----
 
 ui_print("Installing IBL $VERSION...");
