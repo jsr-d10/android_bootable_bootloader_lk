@@ -15,6 +15,9 @@
 int sdcard_is_bootable = false;
 int autoboot = true;
 
+static int cached_bl_min = DEFAULT_MIN_BACKLIGHT;
+static int cached_bl_max = DEFAULT_MAX_BACKLIGHT;
+
 static struct menu *boot_menu(void) {
 	struct menu *menu = NULL;
 	unsigned header_line = fbcon_get_header_line();
@@ -95,6 +98,7 @@ static struct menu *options_menu(void) {
 	add_menu_item(menu, 1, header_line + C++, OLIVE, bootmenu_on_boot, BOOTMENU_ON_BOOT_TOGGLE);
 	add_menu_item(menu, 1, header_line + C++, PURPLE, permissive_selinux, PERMISSIVE_SELINUX_TOGGLE);
 	add_menu_item(menu, 1, header_line + C++, GREEN, "LLCON OPTIONS =>", LLCON_OPTIONS_MENU);
+	add_menu_item(menu, 1, header_line + C++, BLUE,  "BACKLIGHT CONTROL =>", BL_CONTROL_OPTIONS_MENU);
 	return menu;
 }
 
@@ -148,6 +152,31 @@ static struct menu *llcon_options_menu(void) {
 	return menu;
 }
 
+static struct menu *bl_control_options_menu(void) {
+	device_info *device = get_device_info();
+	unsigned header_line = fbcon_get_header_line();
+	struct menu *menu = NULL;
+	int C = 2; //lines Counter
+	size_t offset;
+
+	menu = create_menu ("Backlight Options", BLUE, 0x10);
+
+	char bl_control[MAX_ITEM_LEN] = {0};
+	char bl_min[MAX_ITEM_LEN] = {0};
+	char bl_max[MAX_ITEM_LEN] = {0};
+	snprintf(bl_control, MAX_ITEM_LEN, "Backlight control:      %s", device->backlight_control ? "Y" : "N");
+	snprintf(bl_min, MAX_ITEM_LEN,     "Minimal backlight:    %03d", cached_bl_min);
+	snprintf(bl_max, MAX_ITEM_LEN,     "Maximal backlight:    %03d", cached_bl_max);
+
+	add_menu_item(menu, 1, header_line + C++, SILVER, "BACK TO OPTIONS MENU =>", OPTIONS_MENU);
+	add_menu_item(menu, 1, header_line + C++, RED,   bl_control, BL_CONTROL_TOGGLE);
+	if (device->backlight_control) {
+		add_menu_item(menu, 1, header_line + C++, GREEN, bl_min, BL_MIN_ADJUST);
+		add_menu_item(menu, 1, header_line + C++, LIME,  bl_max, BL_MAX_ADJUST);
+	}
+
+	return menu;
+}
 static struct menu *advanced_menu(void) {
 	struct menu *menu = NULL;
 	int C = 2; //lines Counter
@@ -378,9 +407,68 @@ static uint32_t process_menu(struct menu *menu, int default_selection) {
 	return selected->type;
 }
 
+static void adjust_backlight_limits(struct menu_item *current_item, int selection)
+{
+	if (selection == BL_MIN_ADJUST)
+		fbcon_hprint("Minimal backlight", GREEN);
+	else if (selection == BL_MAX_ADJUST)
+		fbcon_hprint("Maximal backlight", LIME);
+
+	while (true) {
+		wait_vib_timeout();
+		target_keystatus();
+
+		if (keys_get_state(KEY_POWER)) {
+			break;
+		}
+
+		if (keys_get_state(KEY_VOLUMEUP)) {
+			if (selection == BL_MIN_ADJUST)
+				cached_bl_min += 1;
+			else if (selection == BL_MAX_ADJUST)
+				cached_bl_max += 1;
+		}
+
+		if (keys_get_state(KEY_VOLUMEDOWN)) {
+			if (selection == BL_MIN_ADJUST)
+				cached_bl_min -= 1;
+			else if (selection == BL_MAX_ADJUST)
+				cached_bl_max -= 1;
+		}
+
+		cached_bl_min = cached_bl_min < 1 ? 1 : cached_bl_min;
+		cached_bl_max = cached_bl_max < 1 ? 1 : cached_bl_max;
+		cached_bl_min = cached_bl_min > 255 ? 255 : cached_bl_min;
+		cached_bl_max = cached_bl_max > 255 ? 255 : cached_bl_max;
+
+		if (! (keys_get_state(KEY_VOLUMEDOWN) || keys_get_state(KEY_VOLUMEUP)) )
+			continue;
+
+		fbcon_set_cursor_pos(current_item->x_pos, current_item->y_pos);
+		fbcon_set_font_fg_color(BLACK);
+		fbcon_print(current_item->name);
+		fbcon_set_cursor_pos(current_item->x_pos, current_item->y_pos);
+		fbcon_set_font_fg_color(current_item->fg_color);
+
+		//+2 is for 2 spaces before actual item name
+		if (selection == BL_MIN_ADJUST)
+			snprintf(current_item->name+2, MAX_ITEM_LEN, "Minimal backlight:    %03d", cached_bl_min);
+		else if (selection == BL_MAX_ADJUST)
+			snprintf(current_item->name+2, MAX_ITEM_LEN, "Maximal backlight:    %03d", cached_bl_max);
+
+		fbcon_print(current_item->name);
+		thread_sleep(100);
+	}
+	if (selection == BL_MIN_ADJUST)
+		cmd_oem_set_min_backlight((const char *)cached_bl_min, NULL, 0);
+	else if (selection == BL_MAX_ADJUST)
+		cmd_oem_set_max_backlight((const char *)cached_bl_max, NULL, 0);
+}
+
 static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	struct mmc_device *dev;
 	int x;
+	struct menu_item *current_item = get_item_by_type(menu, selection);
 
 	device_info *device = get_device_info();
 	dprintf(SPEW, "%s: processing selection=%d\n", __func__, selection);
@@ -572,6 +660,23 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			cmd_oem_set_llcon_font_color(fbcon_get_color_name(x, ""), NULL, 0);
 			break;
 
+		case BL_CONTROL_OPTIONS_MENU:
+			destroy_menu(menu);
+			draw_menu(bl_control_options_menu, DEFAULT_ITEM);
+			break;
+
+		case BL_CONTROL_TOGGLE:
+			if (device->backlight_control)
+				cmd_oem_disable_backlight_control(NULL, NULL, 0);
+			else
+				cmd_oem_enable_backlight_control(NULL, NULL, 0);
+			break;
+
+		case BL_MIN_ADJUST:
+		case BL_MAX_ADJUST:
+			adjust_backlight_limits(current_item, selection);
+			break;
+
 		case EMMC_READ_SPEED_TEST:
 			test_storage_read_speed(EMMC_CARD, false);
 			break;
@@ -619,6 +724,13 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			draw_menu(llcon_options_menu, selection);
 			break;
 
+		case BL_CONTROL_TOGGLE:
+		case BL_MIN_ADJUST:
+		case BL_MAX_ADJUST:
+			destroy_menu(menu);
+			draw_menu(bl_control_options_menu, selection);
+			break;
+
 		default:
 			break;
 	}
@@ -638,6 +750,10 @@ void draw_menu(struct menu *menu_function(void), int default_selection) {
 void main_menu(int boot_media, int reboot_mode, int hard_reboot_mode) {
 	struct mmc_device *dev = target_mmc_device();
 	int ret = 0;
+
+	device_info *device = get_device_info();
+	cached_bl_min = device->min_backlight;
+	cached_bl_max = device->max_backlight;
 
 	if (dev->config.slot == SD_CARD) // If we have SD already initialized here - it is bootable
 		sdcard_is_bootable = true;
