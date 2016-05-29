@@ -96,7 +96,7 @@ EOF
         fi
         until adb devices|grep recovery; do sleep 1; done
         until adb shell mount|grep /external_sd; do sleep 1; done
-        adb push -p "$zipname" "/external_sd/"
+        adb push "$zipname" "/external_sd/"
         adb shell twrp install "/external_sd/$(basename "$zipname")"
         adb reboot bootloader
         exit 0
