@@ -53,6 +53,9 @@ struct device_info
 	unsigned llcon_wrap;
 	unsigned llcon_font;
 	unsigned llcon_color;
+	bool backlight_control;
+	unsigned min_backlight;
+	unsigned max_backlight;
 };
 
 #endif

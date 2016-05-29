@@ -1218,6 +1218,35 @@ int dev_tree_add_mem_info(void *fdt, uint32_t offset, uint64_t addr, uint64_t si
 	return ret;
 }
 
+int adjust_backlight_limits(void *fdt)
+{
+	int res = 0;
+	int min = get_min_backlight();
+	int max = get_max_backlight();
+	if (min == 0 || max == 0) {
+		dprintf(CRITICAL, "%s: Bad backlight limits: %d-%d\n", __func__, min, max);
+		return -1;
+	}
+	if (!is_backlight_control_enabled()) {
+		dprintf(CRITICAL, "%s: Backlight control not enabled\n", __func__);
+		return 0;
+	}
+	dprintf(CRITICAL, "%s: Adjusting backlight limits\n", __func__);
+	int panel35521_offset = fdt_path_offset(fdt, "/soc/qcom,mdss_mdp/qcom,mdss_dsi_nt35521_720p_video/");
+	int panel35590_offset = fdt_path_offset(fdt, "/soc/qcom,mdss_mdp/qcom,mdss_dsi_720p_video/");
+
+	res += fdt_setprop_inplace_u32(fdt, panel35521_offset, "qcom,mdss-dsi-bl-min-level", min);
+	res += fdt_setprop_inplace_u32(fdt, panel35590_offset, "qcom,mdss-dsi-bl-min-level", min);
+	res += fdt_setprop_inplace_u32(fdt, panel35521_offset, "qcom,mdss-dsi-bl-max-level", max);
+	res += fdt_setprop_inplace_u32(fdt, panel35590_offset, "qcom,mdss-dsi-bl-max-level", max);
+
+	if (res != 0)
+		dprintf(CRITICAL, "%s: Something went wrong, res=%d!\n", __func__, res);
+
+	dprintf(CRITICAL, "%s: Done\n", __func__);
+	return res;
+}
+
 /* Top level function that updates the device tree. */
 int update_device_tree(void *fdt, const char *cmdline,
 					   void *ramdisk, uint32_t ramdisk_size)
@@ -1298,6 +1327,7 @@ int update_device_tree(void *fdt, const char *cmdline,
 		}
 	}
 
+	adjust_backlight_limits(fdt);
 	fdt_pack(fdt);
 
 	return ret;

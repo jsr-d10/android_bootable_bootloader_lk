@@ -103,6 +103,9 @@ static device_info device = {
 	.llcon_wrap = false,
 	.llcon_font = LLCON_FONT_8x16,
 	.llcon_color = WHITE,
+	.backlight_control = false,
+	.min_backlight = DEFAULT_MIN_BACKLIGHT,
+	.max_backlight = DEFAULT_MAX_BACKLIGHT
 };
 
 /*
@@ -122,6 +125,8 @@ char isolated_sdcard_enabled[MAX_RSP_SIZE];
 char sn_buf[13];
 char display_panel_buf[MAX_PANEL_BUF_SIZE];
 char panel_display_mode[MAX_RSP_SIZE];
+char min_backlight[MAX_RSP_SIZE];
+char max_backlight[MAX_RSP_SIZE];
 
 bool boot_into_fastboot_get(void)
 {
@@ -1415,6 +1420,9 @@ void read_device_info_mmc(device_info *dev)
 		info->llcon_wrap = 0;
 		info->llcon_font = LLCON_FONT_8x16;
 		info->llcon_color = WHITE;
+		info->backlight_control = 0;
+		info->min_backlight = DEFAULT_MIN_BACKLIGHT;
+		info->max_backlight = DEFAULT_MAX_BACKLIGHT;
 
 		write_device_info_mmc(info);
 	}
@@ -2278,6 +2286,81 @@ void cmd_oem_enable_bootmenu_on_boot(const char *arg, void *data, unsigned size)
 	fastboot_okay("");
 }
 
+void cmd_oem_enable_backlight_control(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Enabling backlight_control\n");
+
+	if (device.min_backlight == 0)
+		device.min_backlight = DEFAULT_MIN_BACKLIGHT;
+	if (device.max_backlight == 0)
+		device.max_backlight = DEFAULT_MAX_BACKLIGHT;
+
+	device.backlight_control = 1;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_disable_backlight_control(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Disabling backlight_control\n");
+	device.backlight_control = 0;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_set_min_backlight(const char *arg, void *data, unsigned size)
+{
+	int level = (int)arg;
+	if ((size_t)arg >= PAGE_SIZE) {
+		while (arg[0] == ' ' || arg[0] == '\t')
+			arg++; //trim out unnecessary spaces
+		level = atoi(arg);
+	}
+
+	if (level < 1 || level > 255) {
+		dprintf(INFO, "Bad min backlight level: %d (must be 1<level<256\n", level);
+	}
+
+	dprintf(INFO, "Setting minimal backlight to %d\n", level);
+	device.min_backlight = level;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_set_max_backlight(const char *arg, void *data, unsigned size)
+{
+	int level = (int)arg;
+	if ((size_t)arg >= PAGE_SIZE) {
+		while (arg[0] == ' ' || arg[0] == '\t')
+			arg++; //trim out unnecessary spaces
+		level = atoi(arg);
+	}
+
+	if (level < 1 || level > 255) {
+		dprintf(INFO, "Bad max backlight level: %d (must be 1<level<256\n", level);
+	}
+
+	dprintf(INFO, "Setting maximal backlight to %d\n", level);
+	device.max_backlight = level;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+int is_backlight_control_enabled(void)
+{
+	return device.backlight_control;
+}
+
+int get_min_backlight(void)
+{
+	return device.min_backlight;
+}
+
+int get_max_backlight(void)
+{
+	return device.max_backlight;
+}
+
 void cmd_oem_disable_bootmenu_on_boot(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Disabling bootmenu on boot\n");
@@ -2482,6 +2565,13 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	snprintf(response, sizeof(response), "\tLLCON font size: %s", get_llcon_font_by_id(device.llcon_font, "unknown"));
 	fastboot_info(response);
 	snprintf(response, sizeof(response), "\tLLCON font color: %s", fbcon_get_color_name(device.llcon_color, "unknown"));	
+	fastboot_info(response);
+
+	snprintf(response, sizeof(response), "\tBacklight control: %s", (device.backlight_control ? "true" : "false"));
+	fastboot_info(response);
+	snprintf(response, sizeof(response), "\tMinimal backlight: %d", device.min_backlight);
+	fastboot_info(response);
+	snprintf(response, sizeof(response), "\tMaximal backlight: %d", device.max_backlight);
 	fastboot_info(response);
 
 	fastboot_okay("");
@@ -2784,6 +2874,14 @@ void aboot_fastboot_register_commands(void)
 			cmd_oem_set_llcon_font_size);
 	fastboot_register("oem set-llcon-font-color",
 			cmd_oem_set_llcon_font_color);
+	fastboot_register("oem disable-backlight-control",
+			cmd_oem_disable_backlight_control);
+	fastboot_register("oem enable-backlight-control",
+			cmd_oem_enable_backlight_control);
+	fastboot_register("oem set-min-backlight",
+			cmd_oem_set_min_backlight);
+	fastboot_register("oem set-max-backlight",
+			cmd_oem_set_max_backlight);
 	/* publish variables and their values */
 	fastboot_publish("product",  TARGET(BOARD));
 	fastboot_publish("kernel",   "lk");
@@ -2837,6 +2935,13 @@ void aboot_fastboot_register_commands(void)
 		get_llcon_font_by_id(device.llcon_font, "unknown"));
 	fastboot_publish("llcon-font-color",
 		fbcon_get_color_name(device.llcon_color, "unknown"));
+
+	fastboot_publish("backlight-control",
+		device.backlight_control ? "true" : "false");
+	snprintf(min_backlight, MAX_RSP_SIZE, "%d", device.min_backlight);
+	fastboot_publish("min-backlight", min_backlight );
+	snprintf(max_backlight, MAX_RSP_SIZE, "%d", device.max_backlight);
+	fastboot_publish("max-backlight", max_backlight);
 }
 
 void aboot_init(const struct app_descriptor *app)

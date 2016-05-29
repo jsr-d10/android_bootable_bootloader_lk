@@ -243,4 +243,15 @@ void set_last_boot_media(int media);
 
 void write_device_info(device_info *dev);
 
+void cmd_oem_enable_backlight_control(const char *arg, void *data, unsigned size);
+void cmd_oem_disable_backlight_control(const char *arg, void *data, unsigned size);
+void cmd_oem_set_min_backlight(const char *arg, void *data, unsigned size);
+void cmd_oem_set_max_backlight(const char *arg, void *data, unsigned size);
+
+#define DEFAULT_MIN_BACKLIGHT 3
+#define DEFAULT_MAX_BACKLIGHT 255
+int is_backlight_control_enabled(void);
+int get_min_backlight(void);
+int get_max_backlight(void);
+
 #endif // __ABOOT_H
