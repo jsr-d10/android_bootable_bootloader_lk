@@ -2491,9 +2491,14 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 void cmd_fastboot_log(const char *arg, void *data, unsigned sz)
 {
       char *addr=log.data;
+
+      char string[20];
+      snprintf(string, 20, "Dumping %p\n", addr);
+      fastboot_info(string);
+
       while (addr[0] != 0) {
-	  fastboot_info(addr);
-	  addr+=MAX_RSP_SIZE-5; // 5=sizeof("OKAY") + trailing '\0'
+		fastboot_info(addr);
+		addr+=MAX_RSP_SIZE-5; // 5=sizeof("OKAY") + trailing '\0'
       }
       fastboot_okay("");
 }
@@ -2504,6 +2509,10 @@ void cmd_oem_lk_log(const char *arg, void *data, unsigned sz)
 	char* pch;
 	char* buf = strdup(lk_log_getbuf());
 	unsigned size = lk_log_getsize();
+
+	char string[20];
+	snprintf(string, 20, "Dumping %p\n", lk_log_getbuf());
+	fastboot_info(string);
 
 	pch = strtok(buf, "\n\r");
 	while (pch != NULL) {
