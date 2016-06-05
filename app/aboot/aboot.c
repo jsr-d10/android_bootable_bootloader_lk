@@ -3036,6 +3036,7 @@ void aboot_init(const struct app_descriptor *app)
 	} else {
 		switch (boot_media) {
 			case BOOT_MEDIA_EMMC:
+				BOOT_MEDIA_EMMC:
 				if (emmc_health != EMMC_FAILURE) {
 					target_sdc_init_slot(EMMC_CARD);
 					if (emmc_health != EMMC_FAILURE) {
@@ -3045,13 +3046,22 @@ void aboot_init(const struct app_descriptor *app)
 						break;
 					}
 				}
-				dprintf(SPEW, "boot_media=FALL!!!\n");
+				if (boot_media != BOOT_MEDIA_EMMC) {
+					dprintf(SPEW, "UNABLE TO BOOT - NO BOOT DEVICE!!! Going to fastboot and hope for the best\n");
+					boot_into_fastboot_set(true);
+					break;
+				}
+				dprintf(SPEW, "boot_media=eMMC_FALL!!!\n");
 				// Fall through case on EMMC_FAILURE
 			case BOOT_MEDIA_SD:
-				target_sdc_init_slot(SD_CARD);
-				swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
-				dprintf(SPEW, "boot_media=SD\n");
-				boot_media = SD_CARD;
+				if (target_sdc_init_slot(SD_CARD)) {
+					swap_sdcc = device.isolated_sdcard ? SDCC_SD_ONLY : SDCC_SD_EMMC;
+					dprintf(SPEW, "boot_media=SD\n");
+					boot_media = SD_CARD;
+				} else {
+					dprintf(SPEW, "boot_media=SD_FALL!!!\n");
+					goto BOOT_MEDIA_EMMC;
+				}
 				break;
 			default:
 				break;
