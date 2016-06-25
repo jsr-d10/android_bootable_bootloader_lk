@@ -177,3 +177,124 @@ void test_storage_read_speed(int storage, bool full_scan)
 	target_sdc_init_slot(slot);
 
 }
+
+int ss_check_header(struct ss_img_header * hdr)
+{
+	if (memcmp(hdr->magic, SS_IMG_MAGIC, SS_IMG_MAGIC_SIZE))
+		return -1;
+	return 0;
+}
+
+BUF_DMA_ALIGN(ss_hdr, sizeof(struct ss_img_header));
+BUF_DMA_ALIGN(bmp_hdr, BMP_HEADER_SIZE);
+
+int save_screenshot(void)
+{
+	int index = INVALID_PTN;
+	uint64_t ptn = 0;
+	uint64_t psz = 0;
+	struct ss_img_header * hdr = (struct ss_img_header *)ss_hdr;
+	struct bmp_img_header * bmp = (struct bmp_img_header *)bmp_hdr;
+	struct fbcon_config * fb = NULL;
+	int cur_ss;
+	int max_ss;
+	int i, bmp_sz, x, offset;
+
+	index = partition_get_index("splash");
+	if (index <= 0) {
+		dprintf(CRITICAL, "ERROR: SS Partition table not found\n");
+		return -1;
+	}
+	psz = partition_get_size(index);
+	if (!psz) {
+		dprintf(CRITICAL, "ERROR: SS Partition size invalid\n");
+		return -2;
+	}
+	ptn = partition_get_offset(index);
+	if (!ptn) {
+		dprintf(CRITICAL, "ERROR: SS Partition invalid\n");
+		return -2;
+	}
+
+	if (mmc_read(ptn, (unsigned int *)hdr, sizeof(struct ss_img_header))) {
+		dprintf(CRITICAL, "ERROR: Cannot read SS header\n");
+		return -3;
+	}
+	if (ss_check_header(hdr)) {
+		dprintf(CRITICAL, "WARN: SS header invalid. Create new SS header.\n");
+		memset(hdr, 0, sizeof(struct ss_img_header));
+		memcpy(hrd->magic, SS_IMG_MAGIC, SS_IMG_MAGIC_SIZE);
+		hdr->usedspace = sizeof(struct ss_img_header);
+		if (mmc_write(ptn, sizeof(struct ss_img_header), hdr)) {
+			dprintf(CRITICAL, "ERROR: Cannot create new SS header\n");
+			return -5;
+		}
+	}
+
+	max_ss = sizeof(hdr->offset) / sizeof(uint32_t) - 4;
+	cur_ss = -1;
+	for (i = 0; i < max_ss; i++) {
+		if (hdr->offset[i] == 0) {
+			cur_ss = i;
+			break;
+		}
+	}
+	if (cur_ss < 0) {
+		dprintf(CRITICAL, "ERROR: not enough space in SS partition\n");
+		return -8;
+	}
+
+	fb = fbcon_display();
+	if (!fb) {
+		dprintf(CRITICAL, "ERROR: not init frame buffer\n");
+		return -9;
+	}
+	if (!fb->base || !fb->width || !fb->bpp || !fb->pixel_size) {
+		dprintf(CRITICAL, "ERROR: not correct frame buffer\n");
+		return -10;
+	}
+
+	bmp_sz = fb->width * fb->height * fb->pixel_size;
+	if (hdr->usedspace + bmp_sz + BMP_HEADER_SIZE*3 >= psz) {
+		dprintf(CRITICAL, "ERROR: not enough space in SS partition\n");
+		return -11;
+	}
+
+	memset(bmp_hdr, 0, BMP_HEADER_SIZE);
+	bmp->file.bfType = 'MB';
+	bmp->file.bfSize = BMP_HEADER_SIZE + bmp_sz;
+	bmp->file.bfOffBits = BMP_HEADER_SIZE;
+	bmp->info.biSize = sizeof(BITMAPINFOHEADER);
+	bmp->info.biWidth = (int)fb->width;
+	bmp->info.biHeight = -(int)fb->height;
+	bmp->info.biPlanes = 1;
+	bmp->info.biBitCount = fb->bpp;
+	bmp->info.biCompression = 0;
+	bmp->info.biSizeImage = bmp_sz;
+	bmp->info.biXPelsPerMeter = 0;
+	bmp->info.biYPelsPerMeter = 0;
+	bmp->info.biClrUsed = 0;
+	bmp->info.biClrImportant = 0;
+
+	offset = ROUNDUP(hdr->usedspace, BMP_HEADER_SIZE) + BMP_HEADER_SIZE;
+	bmp_sz = ROUNDUP(bmp_sz, BMP_HEADER_SIZE);
+
+	hdr->offset[cur_ss] = offset;
+	hdr->usedspace = offset + bmp->file.bfOffBits + bmp_sz;
+
+	if (mmc_write(ptn, sizeof(struct ss_img_header), hdr)) {
+		dprintf(CRITICAL, "ERROR: Cannot update SS header\n");
+		return -21;
+	}
+	if (mmc_write(ptn + offset, BMP_HEADER_SIZE, bmp)) {
+		dprintf(CRITICAL, "ERROR: Cannot write BMP header\n");
+		return -22;
+	}
+	if (mmc_write(ptn + offset + BMP_HEADER_SIZE, bmp_sz, fb->base)) {
+		dprintf(CRITICAL, "ERROR: Cannot write BMP image\n");
+		return -23;
+	}
+
+	return 0;
+}
+

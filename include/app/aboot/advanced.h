@@ -30,6 +30,48 @@
 #ifndef __ADVANCED_H
 #define __ADVANCED_H
 
+#include <stdint.h>
+
+#define BMP_HEADER_SIZE 512
+
+#define SS_IMG_MAGIC "SCR_SHOT"
+#define SS_IMG_MAGIC_SIZE 8
+
+struct ss_img_header {
+	unsigned char magic[SS_IMG_MAGIC_SIZE];
+	uint32_t usedspace;
+	uint32_t offset[(BMP_HEADER_SIZE - 4 - 8) / sizeof(uint32_t)];
+};
+
+struct BITMAPFILEHEADER {
+	uint16_t bfType;
+	uint32_t bfSize;
+	uint16_t bfReserved1;
+	uint16_t bfReserved2;
+	uint32_t bfOffBits;
+};
+
+struct BITMAPINFOHEADER {
+	uint32_t biSize;
+	int32_t  biWidth;
+	int32_t  biHeight;
+	uint16_t biPlanes;
+	uint16_t biBitCount;
+	uint32_t biCompression;
+	uint32_t biSizeImage;
+	int32_t  biXPelsPerMeter;
+	int32_t  biYPelsPerMeter;
+	uint32_t biClrUsed;
+	uint32_t biClrImportant;
+};
+
+struct bmp_img_header {
+	BITMAPFILEHEADER file;
+	BITMAPINFOHEADER info;
+};
+
+
 void test_storage_read_speed(int storage, bool full_scan);
+int save_screenshot(void);
 
 #endif //__ADVANCED_H
