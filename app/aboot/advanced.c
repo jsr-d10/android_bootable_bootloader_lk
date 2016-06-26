@@ -261,9 +261,10 @@ int save_screenshot(void)
 	}
 
 	memset(bmp_hdr, 0, BMP_HEADER_SIZE);
+	memcpy(bmp_hdr, BMP_PREFIX, BMP_PREFIX_SIZE);
 	bmp->file.bfType = 'MB';
-	bmp->file.bfSize = BMP_HEADER_SIZE + bmp_sz;
-	bmp->file.bfOffBits = BMP_HEADER_SIZE;
+	bmp->file.bfSize = BMP_HEADER_SIZE - BMP_PREFIX_SIZE + bmp_sz;
+	bmp->file.bfOffBits = BMP_HEADER_SIZE - BMP_PREFIX_SIZE;
 	bmp->info.biSize = sizeof(BITMAPINFOHEADER);
 	bmp->info.biWidth = (int)fb->width;
 	bmp->info.biHeight = -(int)fb->height;
@@ -280,7 +281,7 @@ int save_screenshot(void)
 	bmp_sz = ROUNDUP(bmp_sz, BMP_HEADER_SIZE);
 
 	hdr->offset[cur_ss] = offset;
-	hdr->usedspace = offset + bmp->file.bfOffBits + bmp_sz;
+	hdr->usedspace = offset + BMP_HEADER_SIZE + bmp_sz;
 
 	if (mmc_write(ptn, sizeof(struct ss_img_header), hdr)) {
 		dprintf(CRITICAL, "ERROR: Cannot update SS header\n");

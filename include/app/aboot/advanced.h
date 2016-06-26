@@ -34,7 +34,10 @@
 
 #define BMP_HEADER_SIZE 512
 
-#define SS_IMG_MAGIC "SCR_SHOT"
+#define BMP_PREFIX "snapshot"
+#define BMP_PREFIX_SIZE 8
+
+#define SS_IMG_MAGIC "SNAPSHOT"
 #define SS_IMG_MAGIC_SIZE 8
 
 struct ss_img_header {
@@ -66,6 +69,7 @@ struct BITMAPINFOHEADER {
 };
 
 struct bmp_img_header {
+	unsigned char magic[BMP_PREFIX_SIZE];
 	BITMAPFILEHEADER file;
 	BITMAPINFOHEADER info;
 };
