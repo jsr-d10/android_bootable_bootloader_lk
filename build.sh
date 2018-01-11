@@ -102,7 +102,7 @@ EOF
 
     if [ "$boot" = "true" ]; then
         rm -f "$build_dir/../../IBL.img" # Throw error on boot attempt if mkbootimg fails
-        mkbootimg --kernel "$build_dir/../../emmc_appsboot.raw" --dt "$build_dir/../../dt.img" --ramdisk /dev/null -o "$build_dir/../../IBL.img"
+        mkbootimg --kernel "$build_dir/../../emmc_appsboot.raw" --dt "dt.img" --ramdisk /dev/null -o "$build_dir/../../IBL.img"
         fastboot boot "$build_dir/../../IBL.img"
         exit 0
     fi
