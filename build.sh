@@ -79,9 +79,10 @@ msm.boot_update("backup");
 msm.boot_update("finalize");
 ui_print("Done...");
 EOF
-        cd "/tmp/zip_template/"
-        zip "$zipname-unsigned" * -r
-        cd - > /dev/null
+        (
+            cd "/tmp/zip_template/" || exit 1
+            zip "$zipname-unsigned" ./* -r
+        ) || exit 1
         java -Xmx2048m -jar zip_sign/signapk.jar -w zip_sign/testkey.x509.pem zip_sign/testkey.pk8  "$zipname-unsigned"  "$zipname"
         echo "${yellow}$zipname ${green}built${end}"
         rm -rf "/tmp/zip_template/" "$zipname-unsigned"
