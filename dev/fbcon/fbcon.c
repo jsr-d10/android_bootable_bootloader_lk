@@ -38,6 +38,7 @@
 #include <sdhci_msm.h>
 #include <target.h>
 #include <dev/font/font-12x16.h>
+#include <app/aboot/multiboot.h>
 
 #define LOGO_JSR
 
@@ -616,7 +617,12 @@ void fbcon_set_storage_status(void)
 			dprintf(CRITICAL, "%s: Slot id: %d\n", __func__, dev->config.slot);
 			break;
 		case SD_CARD:
-			snprintf(card_state, sizeof(card_state), "[%d] SD", dev->card.retries);
+			if (multiboot_is_available()) {
+				int slot = multiboot_get_active_slot();
+				snprintf(card_state, sizeof(card_state), "[%d] SD%2d", dev->card.retries, slot);
+			} else {
+				snprintf(card_state, sizeof(card_state), "[%d] SD  ", dev->card.retries);
+			}
 			dprintf(CRITICAL, "%s: Slot id: %d\n", __func__, dev->config.slot);
 			break;
 		default:

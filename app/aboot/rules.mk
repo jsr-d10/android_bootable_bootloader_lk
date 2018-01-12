@@ -9,4 +9,5 @@ OBJS += \
 	$(LOCAL_DIR)/fastboot.o \
 	$(LOCAL_DIR)/recovery.o \
 	$(LOCAL_DIR)/menu.o \
+	$(LOCAL_DIR)/multiboot.o \
 	$(LOCAL_DIR)/advanced.o

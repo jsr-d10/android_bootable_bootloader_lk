@@ -36,6 +36,17 @@ static struct menu *boot_menu(void) {
 	add_menu_item(menu, 1, header_line + C++, PURPLE, "REBOOT MENU =>",  REBOOT_MENU);
 	add_menu_item(menu, 1, header_line + C++, SILVER, "OPTIONS MENU =>", OPTIONS_MENU);
 	add_menu_item(menu, 1, header_line + C++, RED,    "ADVANCED MENU =>", ADVANCED_MENU);
+
+	if(multiboot_is_available()) {
+		char multiboot_slot[MAX_ITEM_LEN];
+		const char *format_str = "MULTIBOOT SLOT:      %2d/%d";
+		if (multiboot_get_slots_count() > 9) {
+			format_str = "MULTIBOOT SLOT:     %2d/%2d";
+		}
+		snprintf(multiboot_slot, MAX_ITEM_LEN, format_str,
+		         multiboot_get_active_slot(), multiboot_get_slots_count());
+		add_menu_item(menu, 1, header_line + C++, MAROON, multiboot_slot, MULTIBOOT_SLOT_SELECT);
+	}
 	return menu;
 }
 
@@ -465,6 +476,52 @@ static void adjust_backlight_limits(struct menu_item *current_item, int selectio
 		cmd_oem_set_max_backlight((const char *)cached_bl_max, NULL, 0);
 }
 
+static void multiboot_slot_set_menu(struct menu_item *current_item, int selection)
+{
+	fbcon_hprint("Multiboot slot", GREEN);
+	int multiboot_slots = multiboot_get_slots_count();
+	int cached_multiboot_slot = multiboot_get_active_slot();
+	while (true) {
+		wait_vib_timeout();
+		target_keystatus();
+
+		if (keys_get_state(KEY_POWER)) {
+			break;
+		}
+
+		if (keys_get_state(KEY_VOLUMEUP)) {
+			++cached_multiboot_slot;
+		}
+
+		if (keys_get_state(KEY_VOLUMEDOWN)) {
+			--cached_multiboot_slot;
+		}
+
+		cached_multiboot_slot = cached_multiboot_slot < 1 ? multiboot_slots : cached_multiboot_slot;
+		cached_multiboot_slot = cached_multiboot_slot > multiboot_slots ? 1 : cached_multiboot_slot;
+
+		if (! (keys_get_state(KEY_VOLUMEDOWN) || keys_get_state(KEY_VOLUMEUP)) )
+			continue;
+
+		fbcon_set_cursor_pos(current_item->x_pos, current_item->y_pos);
+		fbcon_set_font_fg_color(BLACK);
+		fbcon_print(current_item->name);
+		fbcon_set_cursor_pos(current_item->x_pos, current_item->y_pos);
+		fbcon_set_font_fg_color(current_item->fg_color);
+
+		const char *format_str = "MULTIBOOT SLOT:      %2d/%d";
+		if (multiboot_get_slots_count() > 9) {
+			format_str = "MULTIBOOT SLOT:     %2d/%2d";
+		}
+		//+2 is for 2 spaces before actual item name
+		snprintf(current_item->name+2, MAX_ITEM_LEN, format_str, cached_multiboot_slot, multiboot_get_slots_count());
+
+		fbcon_print(current_item->name);
+		thread_sleep(300);
+	}
+	multiboot_set_active_slot(cached_multiboot_slot);
+}
+
 static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 	struct mmc_device *dev;
 	int x;
@@ -702,6 +759,10 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 			test_storage_read_speed(SD_CARD, true);
 			break;
 
+		case MULTIBOOT_SLOT_SELECT:
+			multiboot_slot_set_menu(current_item, selection);
+			break;
+
 		default:
 			break;
 	}
@@ -738,6 +799,11 @@ static void handle_menu_selection(uint32_t selection, struct menu *menu) {
 		case BL_MAX_ADJUST:
 			destroy_menu(menu);
 			draw_menu(bl_control_options_menu, selection);
+			break;
+
+		case MULTIBOOT_SLOT_SELECT:
+			destroy_menu(menu);
+			draw_menu(boot_menu, selection);
 			break;
 
 		default:
