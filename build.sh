@@ -43,7 +43,7 @@ do
     *)   print_usage >&2; exit 1 ;;
   esac
 done
-shift $(expr $OPTIND - 1) # remove options from positional parameters
+shift "$((OPTIND - 1))" # remove options from positional parameters
 
 if [ "$clean" = "true" ]; then
     rm -rf "$build_dir"
