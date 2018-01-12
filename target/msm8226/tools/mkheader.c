@@ -229,8 +229,8 @@ int main(int argc, char *argv[])
 
 		if (padding_size < 0) {
 			fprintf(stderr, "ERROR: Input certificate chain"
-				" (Size=%d) is larger than the maximum"
-				" specified (Size=%d)\n",
+				" (Size=%u) is larger than the maximum"
+				" specified (Size=%u)\n",
 				current_cert_chain_size, cert_chain_size);
 			return -1;
 		}
