@@ -257,7 +257,7 @@ void target_crypto_init_params()
 
 int target_check_for_partition(char *name) {
 	int index = partition_get_index(name);
-	int ptn = partition_get_offset(index);
+	uint64_t ptn = partition_get_offset(index);
 	if(ptn == 0) {
 		dprintf(CRITICAL, "ERROR: No %s partition found\n", name);
 		return FALSE;
