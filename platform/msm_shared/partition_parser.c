@@ -60,7 +60,7 @@ static uint32_t mbr_partition_get_type(uint32_t size, uint8_t *partition,
 
 static uint32_t partition_get_type(uint32_t size, uint8_t *partition,
 								   uint32_t *partition_type);
-static uint32_t partition_parse_gpt_header(uint8_t *buffer,
+uint32_t partition_parse_gpt_header(uint8_t *buffer,
 										   uint64_t *first_usable_lba,
 										   uint32_t *partition_entry_size,
 										   uint32_t *header_size,
@@ -1006,7 +1006,7 @@ partition_get_type(unsigned size, unsigned char *partition,
  * Parse the gpt header and get the required header fields
  * Return 0 on valid signature
  */
-static unsigned int
+unsigned int
 partition_parse_gpt_header(unsigned char *buffer,
 			   unsigned long long *first_usable_lba,
 			   unsigned int *partition_entry_size,

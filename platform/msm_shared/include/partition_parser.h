@@ -169,4 +169,10 @@ bool partition_gpt_exists();
 /* For Debugging */
 void partition_dump(void);
 
+unsigned int
+partition_parse_gpt_header(unsigned char *buffer,
+                           unsigned long long *first_usable_lba,
+                           unsigned int *partition_entry_size,
+                           unsigned int *header_size,
+                           unsigned int *max_partition_count);
 #endif
