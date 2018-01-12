@@ -55,17 +55,19 @@ touch dev/fbcon/fbcon.c # Force rebuilding it to make sure that version string i
 if ! make DEBUG=2 PROJECT=msm8226 BOOTLOADER_OUT="$build_dir" EMMC_BOOT=1 VERSION="$VERSION" -j"$(nproc)"; then
     echo ""
     echo "${red}Build FAILED!${end}"
-else
-    echo ""
-    echo "${green}Successfully built${end}"
+    exit 1
+fi
 
-    if [ "$zip" = "true" ]; then
-        path=$(readlink -f $build_dir/../../)
-        zipname="$path/IBL_$VERSION.zip"
-        rm -rf /tmp/zip_template/ "$zipname"
-        cp -r zip_template /tmp/
-        cp "$build_dir/../../emmc_appsboot.mbn" "/tmp/zip_template/firmware-update/IBL_$VERSION.mbn"
-        cat > /tmp/zip_template/META-INF/com/google/android/updater-script <<EOF
+echo ""
+echo "${green}Successfully built${end}"
+
+if [ "$zip" = "true" ]; then
+    path=$(readlink -f $build_dir/../../)
+    zipname="$path/IBL_$VERSION.zip"
+    rm -rf /tmp/zip_template/ "$zipname"
+    cp -r zip_template /tmp/
+    cp "$build_dir/../../emmc_appsboot.mbn" "/tmp/zip_template/firmware-update/IBL_$VERSION.mbn"
+    cat > /tmp/zip_template/META-INF/com/google/android/updater-script <<EOF
 # ---- radio update tasks ----
 
 ui_print("Installing IBL $VERSION...");
@@ -79,37 +81,36 @@ msm.boot_update("backup");
 msm.boot_update("finalize");
 ui_print("Done...");
 EOF
-        (
-            cd "/tmp/zip_template/" || exit 1
-            zip "$zipname-unsigned" ./* -r
-        ) || exit 1
-        java -Xmx2048m -jar zip_sign/signapk.jar -w zip_sign/testkey.x509.pem zip_sign/testkey.pk8  "$zipname-unsigned"  "$zipname"
-        echo "${yellow}$zipname ${green}built${end}"
-        rm -rf "/tmp/zip_template/" "$zipname-unsigned"
-    fi
+    (
+        cd "/tmp/zip_template/" || exit 1
+        zip "$zipname-unsigned" ./* -r
+    ) || exit 1
+    java -Xmx2048m -jar zip_sign/signapk.jar -w zip_sign/testkey.x509.pem zip_sign/testkey.pk8  "$zipname-unsigned"  "$zipname"
+    echo "${yellow}$zipname ${green}built${end}"
+    rm -rf "/tmp/zip_template/" "$zipname-unsigned"
+fi
 
-    if [ "$install" = "true" ]; then
-        if ! adb devices|grep recovery; then
-          adb reboot recovery
-        fi
-        until adb devices|grep recovery; do sleep 1; done
-        until adb shell mount|grep /external_sd; do sleep 1; done
-        adb push "$zipname" "/external_sd/"
-        adb shell twrp install "/external_sd/$(basename "$zipname")"
-        adb reboot bootloader
-        exit 0
+if [ "$install" = "true" ]; then
+    if ! adb devices|grep recovery; then
+      adb reboot recovery
     fi
+    until adb devices|grep recovery; do sleep 1; done
+    until adb shell mount|grep /external_sd; do sleep 1; done
+    adb push "$zipname" "/external_sd/"
+    adb shell twrp install "/external_sd/$(basename "$zipname")"
+    adb reboot bootloader
+    exit 0
+fi
 
-    if [ "$boot" = "true" ]; then
-        rm -f "$build_dir/../../IBL.img" # Throw error on boot attempt if mkbootimg fails
-        mkbootimg --kernel "$build_dir/../../emmc_appsboot.raw" --dt "dt.img" --ramdisk /dev/null -o "$build_dir/../../IBL.img"
-        fastboot boot "$build_dir/../../IBL.img"
-        exit 0
-    fi
+if [ "$boot" = "true" ]; then
+    rm -f "$build_dir/../../IBL.img" # Throw error on boot attempt if mkbootimg fails
+    mkbootimg --kernel "$build_dir/../../emmc_appsboot.raw" --dt "dt.img" --ramdisk /dev/null -o "$build_dir/../../IBL.img"
+    fastboot boot "$build_dir/../../IBL.img"
+    exit 0
+fi
 
-    if [ "$flash" = "true" ]; then
-        fastboot flash aboot "$build_dir"/../../emmc_appsboot.mbn
-        fastboot reboot-bootloader
-        exit 0
-    fi
+if [ "$flash" = "true" ]; then
+    fastboot flash aboot "$build_dir"/../../emmc_appsboot.mbn
+    fastboot reboot-bootloader
+    exit 0
 fi
