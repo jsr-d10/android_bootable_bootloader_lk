@@ -613,15 +613,15 @@ void fbcon_set_storage_status(void)
 
 	switch (dev->config.slot) {
 		case EMMC_CARD:
-			snprintf(card_state, sizeof(card_state), "[%d] eMMC", dev->card.retries);
+			snprintf(card_state, sizeof(card_state), "[%u] eMMC", dev->card.retries);
 			dprintf(CRITICAL, "%s: Slot id: %d\n", __func__, dev->config.slot);
 			break;
 		case SD_CARD:
 			if (multiboot_is_available()) {
 				int slot = multiboot_get_active_slot();
-				snprintf(card_state, sizeof(card_state), "[%d] SD%2d", dev->card.retries, slot);
+				snprintf(card_state, sizeof(card_state), "[%u] SD%2d", dev->card.retries, slot);
 			} else {
-				snprintf(card_state, sizeof(card_state), "[%d] SD  ", dev->card.retries);
+				snprintf(card_state, sizeof(card_state), "[%u] SD  ", dev->card.retries);
 			}
 			dprintf(CRITICAL, "%s: Slot id: %d\n", __func__, dev->config.slot);
 			break;
